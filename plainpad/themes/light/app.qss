@@ -1,0 +1,265 @@
+/*
+ * Light theme for the application chrome, chosen for WCAG contrast.
+ *
+ * Palette (contrast against #ffffff)
+ *   background     #ffffff
+ *   panel          #f6f8fa
+ *   hover          #eaeef2
+ *   text           #1f2328   15.8:1  (AAA)
+ *   muted text     #57606a    6.4:1  (AA)
+ *   border         #8c959f    3.0:1  (meets 3:1 for UI components)
+ *   accent         #0969da    5.2:1  (AA); white text on it is 5.2:1
+ */
+
+QWidget {
+    background-color: #ffffff;
+    color: #1f2328;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10pt;
+    selection-background-color: #0969da;
+    selection-color: #ffffff;
+}
+
+QWidget:disabled {
+    color: #57606a;
+}
+
+/* --- Menus ------------------------------------------------------------ */
+
+QMenuBar {
+    background-color: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 4px 10px;
+}
+
+QMenuBar::item:selected,
+QMenuBar::item:pressed {
+    background-color: #0969da;
+    color: #ffffff;
+}
+
+QMenu {
+    background-color: #ffffff;
+    border: 1px solid #8c959f;
+}
+
+QMenu::item {
+    padding: 5px 24px 5px 24px;
+}
+
+QMenu::item:selected {
+    background-color: #0969da;
+    color: #ffffff;
+}
+
+QMenu::item:disabled {
+    color: #57606a;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #d0d7de;
+    margin: 4px 8px;
+}
+
+/* --- Search box ------------------------------------------------------- */
+
+QLineEdit {
+    background-color: #ffffff;
+    border: 1px solid #8c959f;
+    border-radius: 3px;
+    padding: 5px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #0969da;
+}
+
+/* --- Category tree ---------------------------------------------------- */
+
+QTreeWidget {
+    background-color: #f6f8fa;
+    border: 1px solid #8c959f;
+    outline: none;
+}
+
+QTreeWidget:focus {
+    border-color: #0969da;
+}
+
+QTreeWidget::item {
+    padding: 3px;
+}
+
+QTreeWidget::item:hover:!selected {
+    background-color: #eaeef2;
+}
+
+QTreeWidget::item:selected {
+    background-color: #0969da;
+    color: #ffffff;
+}
+
+QTreeWidget::branch {
+    background-color: #f6f8fa;
+}
+
+/* The F2 rename box sits inside a row; the search box padding above
+   would squeeze its text and clip it. */
+QTreeWidget QLineEdit {
+    padding: 0px;
+    margin: 0px;
+    border: 1px solid #0969da;
+    border-radius: 0px;
+}
+
+/* --- Tabs ------------------------------------------------------------- */
+
+QTabWidget::pane {
+    border: 1px solid #8c959f;
+}
+
+QTabBar::tab {
+    color: #57606a;
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    padding: 5px 16px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:hover {
+    color: #1f2328;
+    background-color: #eaeef2;
+}
+
+QTabBar::tab:selected {
+    color: #ffffff;
+    background-color: #0969da;
+    border-color: #0969da;
+}
+
+/* --- Editors ---------------------------------------------------------- */
+
+QPlainTextEdit {
+    background-color: #ffffff;
+    border: none;
+    padding: 6px;
+    font-family: "Cascadia Mono", "Consolas", "Courier New", monospace;
+    font-size: 11pt;
+}
+
+QPlainTextEdit:disabled {
+    color: #57606a;
+}
+
+/* --- Buttons ---------------------------------------------------------- */
+
+QPushButton {
+    background-color: #f6f8fa;
+    border: 1px solid #8c959f;
+    border-radius: 3px;
+    padding: 5px 14px;
+    min-width: 64px;
+}
+
+QPushButton:hover {
+    background-color: #eaeef2;
+}
+
+QPushButton:focus {
+    border-color: #0969da;
+}
+
+QPushButton:pressed {
+    background-color: #0969da;
+    color: #ffffff;
+}
+
+QPushButton:disabled {
+    color: #57606a;
+    border-color: #d0d7de;
+}
+
+/* --- Labels ----------------------------------------------------------- */
+
+QLabel#hint {
+    color: #57606a;
+}
+
+/* --- Splitter --------------------------------------------------------- */
+
+QSplitter::handle {
+    background-color: #d0d7de;
+}
+
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+
+QSplitter::handle:hover {
+    background-color: #0969da;
+}
+
+/* --- Scroll bars ------------------------------------------------------ */
+
+QScrollBar:vertical {
+    background-color: #ffffff;
+    width: 12px;
+}
+
+QScrollBar:horizontal {
+    background-color: #ffffff;
+    height: 12px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #8c959f;
+    border-radius: 4px;
+    min-height: 24px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #8c959f;
+    border-radius: 4px;
+    min-width: 24px;
+    margin: 2px;
+}
+
+QScrollBar::handle:hover {
+    background-color: #57606a;
+}
+
+QScrollBar::add-line,
+QScrollBar::sub-line {
+    width: 0;
+    height: 0;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none;
+}
+
+/* --- Status bar ------------------------------------------------------- */
+
+QStatusBar {
+    background-color: #f6f8fa;
+    border-top: 1px solid #d0d7de;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+/* --- Dialogs ---------------------------------------------------------- */
+
+QToolTip {
+    background-color: #1f2328;
+    color: #ffffff;
+    border: none;
+}

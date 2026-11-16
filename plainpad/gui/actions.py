@@ -6,8 +6,10 @@ about what an action does.
 """
 
 from PyQt6.QtCore import QObject, Qt
-from PyQt6.QtGui import QAction, QKeySequence
+from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
 from PyQt6.QtWidgets import QMenuBar
+
+from plainpad.models import Theme
 
 
 class Actions(QObject):
@@ -17,14 +19,23 @@ class Actions(QObject):
     Edit: undo, redo, cut, copy, paste, select_all, find
     View: show_edit_tab, show_view_tab, show_settings_tab,
           toggle_edit_and_view
+    Settings: themes, one checkable action per theme name
     Help: about
 
     Shortcuts are listed in SPEC.md section 8.
     """
 
-    def __init__(self, parent: QObject) -> None:
+    def __init__(self, parent: QObject, themes: list[Theme]) -> None:
         """Create every action with its label and shortcut."""
         super().__init__(parent)
+        # Exclusive, so checking one theme unchecks the rest.
+        self._theme_group = QActionGroup(self)
+        self.themes: dict[str, QAction] = {}
+        for theme in themes:
+            action = self.make(theme.label, "")
+            action.setCheckable(True)
+            self._theme_group.addAction(action)
+            self.themes[theme.name] = action
         self.new_note = self.make("&New Note", "Ctrl+N")
         self.new_category = self.make("New &Category", "Ctrl+Shift+N")
         self.rename = self.make("&Rename", "F2")
@@ -88,6 +99,10 @@ def populate_menu_bar(menu_bar: QMenuBar, actions: Actions) -> None:
     )
     view_menu.addSeparator()
     view_menu.addAction(actions.toggle_edit_and_view)
+
+    settings_menu = menu_bar.addMenu("&Settings")
+    theme_menu = settings_menu.addMenu("&Theme")
+    theme_menu.addActions(list(actions.themes.values()))
 
     help_menu = menu_bar.addMenu("&Help")
     help_menu.addAction(actions.about)

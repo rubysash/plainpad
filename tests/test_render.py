@@ -1,11 +1,8 @@
-"""Tests for plainpad.render and plainpad.style_store."""
-
-from pathlib import Path
+"""Tests for plainpad.render."""
 
 import pytest
 
 from plainpad.render import MarkdownRenderer
-from plainpad.style_store import StyleStore
 
 
 @pytest.fixture
@@ -37,31 +34,19 @@ def test_renderer_is_reusable(renderer: MarkdownRenderer) -> None:
     assert "One" not in renderer.body_html("# Two")
 
 
-def test_page_html_embeds_css_and_declares_utf8(
+def test_render_page_embeds_css_and_declares_utf8(
     renderer: MarkdownRenderer,
 ) -> None:
-    page = renderer.page_html("hello", "body { color: red; }")
+    page = renderer.render_page("hello", "body { color: red; }").html
     assert '<meta charset="utf-8">' in page
     assert "<style>\nbody { color: red; }\n</style>" in page
     assert "<p>hello</p>" in page
     assert "<script" not in page
 
 
-@pytest.fixture
-def style_store(tmp_path: Path) -> StyleStore:
-    """A StyleStore with a shipped default and no user CSS yet."""
-    default = tmp_path / "default.css"
-    default.write_text("body { color: green; }", encoding="utf-8")
-    return StyleStore(tmp_path / "data" / "preview.css", default)
-
-
-def test_load_returns_default_when_nothing_saved(
-    style_store: StyleStore,
+def test_render_page_returns_code_block_text(
+    renderer: MarkdownRenderer,
 ) -> None:
-    assert style_store.load() == "body { color: green; }"
-
-
-def test_save_then_load_returns_saved_css(style_store: StyleStore) -> None:
-    style_store.save("p { margin: 0; }")
-    assert style_store.load() == "p { margin: 0; }"
-    assert style_store.default_css() == "body { color: green; }"
+    rendered = renderer.render_page("```\nls -la\n```", "")
+    assert rendered.code_blocks == ["ls -la"]
+    assert 'href="plainpad-copy:0"' in rendered.html

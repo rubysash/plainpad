@@ -12,7 +12,6 @@ ORGANIZATION_NAME = "Plainpad"
 # --- Locations -----------------------------------------------------------
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-RESOURCES_DIR = Path(__file__).resolve().parent / "resources"
 
 VENV_DIR = PROJECT_DIR / ".venv"
 # The windowless interpreter, used by the plainpad.pyw launcher.
@@ -22,10 +21,23 @@ DATA_DIR = PROJECT_DIR / "data"
 NOTES_DIR_NAME = "notes"
 TRASH_DIR_NAME = "trash"
 INDEX_FILE_NAME = "index.json"
-PREVIEW_CSS_FILE_NAME = "preview.css"
+# The user's View tab CSS, one file per theme: styles/<theme>.css.
+STYLES_DIR_NAME = "styles"
+STYLE_FILE_EXTENSION = ".css"
 
-QSS_FILE = RESOURCES_DIR / "crt.qss"
-DEFAULT_PREVIEW_CSS_FILE = RESOURCES_DIR / "default_preview.css"
+# --- Themes --------------------------------------------------------------
+
+# One folder per theme, each holding these three files.
+THEMES_DIR = Path(__file__).resolve().parent / "themes"
+THEME_QSS_FILE_NAME = "app.qss"
+THEME_PREVIEW_CSS_FILE_NAME = "preview.css"
+THEME_INFO_FILE_NAME = "theme.json"
+
+# The original CRT look. Its files never change and its CSS cannot be
+# edited, so it is always there to fall back to.
+DEFAULT_THEME = "default"
+# What a first launch uses: the same look, but editable.
+FIRST_RUN_THEME = "crt"
 
 # --- Files ---------------------------------------------------------------
 
@@ -69,6 +81,8 @@ UNCATEGORIZED_NAME = "Uncategorized"
 
 AUTOSAVE_DELAY_MS = 4000
 SEARCH_DELAY_MS = 200
+# Pause after arrowing through the tree before the highlighted note loads.
+NOTE_BROWSE_DELAY_MS = 300
 
 # --- Markdown and preview ------------------------------------------------
 
@@ -76,6 +90,15 @@ MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
 PREVIEW_BACKGROUND_COLOR = "#000000"
 EXTERNAL_LINK_SCHEMES = frozenset({"http", "https", "mailto"})
+
+# Copy links on code blocks are plain links in this scheme, because the
+# View tab runs no JavaScript. The app catches the click and copies.
+COPY_LINK_SCHEME = "plainpad-copy"
+CODE_BLOCK_TEMPLATE = (
+    '<div class="code-block">'
+    '<a class="copy-code" href="{scheme}:{index}">copy</a>'
+    "{block}</div>"
+)
 
 PREVIEW_PAGE_TEMPLATE = """<!DOCTYPE html>
 <html>
@@ -101,3 +124,4 @@ DEFAULT_SPLITTER_SIZES = (260, 740)
 SETTINGS_GEOMETRY_KEY = "window/geometry"
 SETTINGS_SPLITTER_KEY = "window/splitter"
 SETTINGS_LAST_NOTE_KEY = "session/last_note"
+SETTINGS_THEME_KEY = "appearance/theme"

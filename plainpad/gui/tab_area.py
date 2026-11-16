@@ -16,17 +16,13 @@ class TabArea(QTabWidget):
     """
 
     def __init__(
-        self,
-        renderer: MarkdownRenderer,
-        css: str,
-        default_css: str,
-        parent: QWidget | None = None,
+        self, renderer: MarkdownRenderer, parent: QWidget | None = None
     ) -> None:
         """Create the three tabs in Edit, View, Settings order."""
         super().__init__(parent)
         self._editor = EditorTab(self)
         self._preview = PreviewTab(renderer, self)
-        self._settings = SettingsTab(css, default_css, self)
+        self._settings = SettingsTab(self)
         self._edit_index = self.addTab(self._editor, "Edit")
         self._view_index = self.addTab(self._preview, "View")
         self._settings_index = self.addTab(self._settings, "Settings")
@@ -36,6 +32,11 @@ class TabArea(QTabWidget):
     def editor(self) -> EditorTab:
         """The note editor, for MainWindow to connect to."""
         return self._editor
+
+    @property
+    def preview(self) -> PreviewTab:
+        """The rendered view, for MainWindow to connect to."""
+        return self._preview
 
     @property
     def settings(self) -> SettingsTab:
@@ -66,10 +67,21 @@ class TabArea(QTabWidget):
         self._editor.flush()
         self._settings.flush()
 
+    def has_unsaved_changes(self) -> bool:
+        """Return True if a note or the CSS has edits not yet on disk."""
+        return (
+            self._editor.has_unsaved_changes()
+            or self._settings.has_unsaved_changes()
+        )
+
     def on_tab_changed(self, index: int) -> None:
         """Flush pending saves; render the note if View was selected."""
         self.flush_pending_saves()
-        if index != self._view_index:
+        self.refresh_view()
+
+    def refresh_view(self) -> None:
+        """Re-render the open note if the View tab is showing."""
+        if self.currentIndex() != self._view_index:
             return
         if self._editor.current_note_name() is None:
             self._preview.show_nothing()

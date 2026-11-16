@@ -48,8 +48,9 @@ its id in `index.json`, never its display name.
 - No function that exists only to be called once from one place to shorten
   another function. Split by responsibility, not by line count.
 - Constants go in `config.py`. No magic numbers or paths in other files.
-- Styling goes in `resources/crt.qss` and `resources/default_preview.css`.
-  No inline `setStyleSheet` strings in widgets.
+- Styling goes in the theme folders, `plainpad/themes/<name>/app.qss` and
+  `preview.css`. No inline `setStyleSheet` strings in widgets. Never edit
+  `themes/default/`; it is the frozen fallback and a test checks it.
 - Every file write goes through `atomic_file.write_text_atomically`.
 - The app never erases user notes. Delete moves to `data/trash/`.
 - Layers 1 and 2 get unit tests using pytest's `tmp_path`. Tests never touch
@@ -65,3 +66,5 @@ its id in `index.json`, never its display name.
   `document().isModified()` so loading a note does not trigger an autosave.
 - Windows file names are case-insensitive. Compare note names with
   `casefold()`.
+- A `QWebEnginePage` that outlives the `QApplication` crashes the process
+  at exit. Delete the window before the application goes away.

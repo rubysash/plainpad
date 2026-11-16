@@ -101,6 +101,14 @@ QTreeWidget::branch {
     background-color: #000000;
 }
 
+/* The F2 rename box sits inside a row; the search box padding above
+   would squeeze its text and clip it. */
+QTreeWidget QLineEdit {
+    padding: 0px;
+    margin: 0px;
+    border: 1px solid #33ff33;
+}
+
 /* --- Tabs ------------------------------------------------------------- */
 
 QTabWidget::pane {
@@ -224,4 +232,15 @@ QToolTip {
     background-color: #000000;
     color: #33ff33;
     border: 1px solid #1a8c1a;
+}
+
+QPushButton:disabled {
+    color: #1a8c1a;
+    border-color: #0d460d;
+}
+
+/* --- Labels ----------------------------------------------------------- */
+
+QLabel#hint {
+    color: #1a8c1a;
 }

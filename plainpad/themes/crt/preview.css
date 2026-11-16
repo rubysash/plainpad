@@ -44,6 +44,28 @@ pre code {
     padding: 0;
 }
 
+/* Copy link in the top right corner of each code block. */
+.code-block {
+    position: relative;
+}
+
+.copy-code {
+    position: absolute;
+    top: 0.4em;
+    right: 0.4em;
+    padding: 0 0.5em;
+    border: 1px solid #1a8c1a;
+    background-color: #000000;
+    color: #1a8c1a;
+    font-size: 0.85em;
+    text-decoration: none;
+}
+
+.copy-code:hover {
+    color: #33ff33;
+    border-color: #33ff33;
+}
+
 blockquote {
     margin-left: 0;
     padding-left: 1em;

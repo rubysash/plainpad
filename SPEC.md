@@ -52,6 +52,10 @@ The two sides are separated by a draggable splitter.
 - Every category starts collapsed on launch. Clicking a category expands or
   collapses it.
 - Clicking a note, or pressing Enter on it, opens it in the Edit tab.
+- Moving through the tree with Up, Down, Page Up, Page Down, Home, or End
+  loads the note the selection rests on after a 300 ms pause, without
+  changing tabs. If the View tab is showing, it re-renders, so rendered
+  notes can be browsed from the keyboard.
 - Double-clicking does not rename; rename is F2 only.
 
 ### 3.2 Drag and drop
@@ -87,8 +91,14 @@ The two sides are separated by a draggable splitter.
 
 ### 4.2 View
 
-- The open note rendered from markdown to HTML with the user's CSS.
+- The open note rendered from markdown to HTML with the current theme's
+  View CSS (see 4.3).
 - Re-rendered each time the tab is shown.
+- Every code block has a **copy** link in its top right corner. Clicking
+  it puts the block's text on the clipboard, exactly as written in the
+  note, and the status bar says so. The link is a plain
+  `plainpad-copy:<n>` link caught by the app, since the page runs no
+  JavaScript.
 - JavaScript is disabled in the page. Links open in the system browser, not
   inside the app. Only `http`, `https`, and `mailto` links are opened;
   other link types do nothing. Links to an anchor in the same note scroll
@@ -97,10 +107,16 @@ The two sides are separated by a draggable splitter.
 
 ### 4.3 Settings
 
-- One CSS editor. This CSS styles the View tab only.
+- One CSS editor showing the current theme's View CSS. This CSS styles the
+  View tab only.
+- Each theme keeps its own CSS. Until it is edited, a theme uses the CSS it
+  ships with. Switching themes saves pending CSS under the theme it was
+  typed for.
 - Autosaves with the same 4 second rule as notes.
-- A "Reset to default" button restores the shipped CRT stylesheet, after a
-  confirmation.
+- A "Reset to default" button restores the current theme's shipped CSS,
+  after a confirmation. The reset is one undoable edit.
+- For the Default theme the editor is read-only, the button is disabled,
+  and a hint explains why (see 9).
 
 ## 5. Autosave
 
@@ -112,7 +128,10 @@ The two sides are separated by a draggable splitter.
   real one, so a crash cannot leave a half-written note.
 - The status bar shows the time of the last save, or the error if a save
   failed. A failed save keeps the text in the editor and retries on the
-  next change.
+  next change, and on every flush listed above, even after switching to
+  another note.
+- If something still cannot be saved when the app closes, it asks before
+  quitting. No is the default, so the window stays open.
 
 ## 6. Notes and categories
 
@@ -145,7 +164,7 @@ data/
   notes/        one .md file per note, UTF-8
   trash/        deleted notes
   index.json    categories and which note is in which
-  preview.css   the Settings tab CSS
+  styles/       the Settings tab CSS, one <theme>.css per edited theme
 ```
 
 `data/` sits in the project folder and is git-ignored. The location is one
@@ -174,8 +193,8 @@ constant in `config.py`.
   `index.json.<timestamp>.corrupt` (never overwritten) and the app starts
   with no categories.
 
-Window size, splitter position, and the last open note are remembered with
-`QSettings`.
+Window size, splitter position, the last open note, and the chosen theme
+are remembered with `QSettings`.
 
 ## 8. Menus and keys
 
@@ -196,6 +215,7 @@ Window size, splitter position, and the last open note are remembered with
 | View | View tab | Ctrl+2 |
 | View | Settings tab | Ctrl+3 |
 | View | Toggle Edit / View | Ctrl+E |
+| Settings | Theme > (one item per theme, current one checked) | |
 | Help | About | |
 
 Rename and Delete act on the selected tree row, whether it is a note or a
@@ -204,17 +224,43 @@ category. Rename edits the row in place.
 The Edit menu items act on whichever text box has focus: the note editor,
 the CSS editor, or the search box.
 
-## 9. Theme
+## 9. Themes
 
-- Black background (`#000000`), phosphor green text (`#33ff33`), dimmer
-  green (`#1a8c1a`) for borders and inactive items.
-- Font stack: `VT323`, `Consolas`, `Courier New`, `monospace`. No font is
-  bundled; `VT323` is used if the user has installed it.
-- The app chrome is styled by `resources/crt.qss`, on top of Qt's Fusion
-  style. The native Windows style ignores parts of a stylesheet.
-- The rendered view is styled by the user's CSS, which starts as
-  `resources/default_preview.css` and includes a text glow.
-- Qt widgets cannot draw a text glow, so only the View tab glows.
+Themes live in `plainpad/themes/`, one folder each:
+
+```
+plainpad/themes/<name>/
+  app.qss       the window chrome (menus, tree, tabs, editors)
+  preview.css   the View tab CSS the theme ships with
+  theme.json    {"label": "..."} for the menu; optional
+```
+
+Any folder with both stylesheets is a theme and appears in
+Settings > Theme with no code change. Without `theme.json` the menu shows
+the folder name. Default is listed first, the rest by label. Switching is
+instant and remembered across restarts. The chrome is applied on top of
+Qt's Fusion style, because the native Windows style ignores parts of a
+stylesheet.
+
+| Theme | Look |
+| --- | --- |
+| `default` | The original CRT green. Never changes; see below. |
+| `crt` | The same CRT green, editable. Used on first launch. |
+| `dark` | ttkbootstrap's "darkly" palette: `#222222` background, `#ffffff` text, `#375a7f` accent, `#00bc8c` links. |
+| `light` | White background, `#1f2328` text (15.8:1), `#0969da` accent and links (5.2:1), `#57606a` muted text (6.4:1). WCAG AA or better throughout. |
+
+Default is the safe fallback:
+
+- Its files never change. A test checks their hashes.
+- Its View CSS cannot be edited, so bad CSS can never break it.
+- An unknown, missing, or incomplete theme falls back to it.
+
+CRT details: black `#000000`, phosphor green `#33ff33`, dim green
+`#1a8c1a`. Font stack `VT323`, `Consolas`, `Courier New`, `monospace`; no
+font is bundled, `VT323` is used if installed. Its View CSS has a text
+glow; Qt widgets cannot draw one, so only the View tab glows. Dark and
+Light use Segoe UI for the chrome and Cascadia Mono or Consolas for the
+editors.
 
 ## 10. Code layout
 
@@ -231,15 +277,17 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/__main__.py` | | `python -m plainpad` |
 | `plainpad.pyw` | | Double-click launcher; switches to `.venv`, shows startup errors in a message box |
 | `plainpad/config.py` | constants | Paths, delays, name format |
-| `plainpad/models.py` | `Category`, `CategoryListing` | Plain data classes |
+| `plainpad/models.py` | `Category`, `CategoryListing`, `Theme`, `RenderedPage` | Plain data classes |
 | `plainpad/crud.py` | `NoteStore`, `timestamp_name()`, `NoteNameError` | Create, read, update, delete note files |
 | `plainpad/atomic_file.py` | `write_text_atomically()` | The one crash-safe write, used by notes, index, and CSS |
 | `plainpad/categories.py` | `CategoryIndex` | Load, change, and save `index.json` |
 | `plainpad/search.py` | `find_matching_notes()` | Keyword search |
 | `plainpad/library.py` | `Library` | Facade over notes, categories, search |
 | `plainpad/render.py` | `MarkdownRenderer` | Markdown and CSS to an HTML page |
-| `plainpad/style_store.py` | `StyleStore` | Load, save, reset the preview CSS |
-| `plainpad/theme.py` | `apply_crt_theme()` | Load `crt.qss` onto the application |
+| `plainpad/code_blocks.py` | `add_copy_links()` | Copy links on code blocks, and each block's text |
+| `plainpad/theme_store.py` | `ThemeStore` | Find themes and read their stylesheets |
+| `plainpad/style_store.py` | `StyleStore` | Load and save each theme's View CSS; Default is read-only |
+| `plainpad/theme.py` | `apply_theme()` | Put a theme's `app.qss` on the application |
 | `plainpad/autosave.py` | `AutosaveTimer` | The 4 second idle timer |
 | `plainpad/gui/main_window.py` | `MainWindow` | Layout and signal wiring |
 | `plainpad/gui/tree_commands.py` | `TreeCommands` | Create, rename, move, delete notes and categories |
@@ -254,12 +302,13 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view |
 | `plainpad/gui/settings_tab.py` | `SettingsTab` | CSS editor |
 | `plainpad/gui/dialogs.py` | `ask_for_name()`, `confirm()`, `show_about()` | The modal prompts |
-| `plainpad/resources/crt.qss` | | App chrome stylesheet |
-| `plainpad/resources/default_preview.css` | | Default View tab stylesheet |
+| `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
 | `tests/test_*.py` | | Unit tests for layer 1 and 2 |
+| `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes |
 
-Size: about 2,100 lines of Python (half of it docstrings and comments)
-across 28 source files, none much over 200 lines.
+Size: about 2,500 lines of Python (half of it docstrings and comments)
+across 31 source files. `main_window.py` and `note_tree.py` run a little
+over the 200 line guideline.
 
 ## 11. Out of scope
 

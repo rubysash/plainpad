@@ -5,12 +5,12 @@ stores what it is (category or note) and its identity in item data, so the
 displayed text is never parsed; see tree_items.py.
 """
 
-from PyQt6.QtCore import QTimer, pyqtSignal
-from PyQt6.QtGui import QDropEvent
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QDropEvent, QKeyEvent
 from PyQt6.QtWidgets import QAbstractItemView, QTreeWidget, QTreeWidgetItem
 from PyQt6.QtWidgets import QWidget
 
-from plainpad.config import UNCATEGORIZED_ID
+from plainpad.config import NOTE_BROWSE_DELAY_MS, UNCATEGORIZED_ID
 from plainpad.gui.tree_filter import TreeFilter
 from plainpad.gui.tree_items import (
     CATEGORY_FLAGS,
@@ -27,6 +27,18 @@ from plainpad.gui.tree_items import (
 )
 from plainpad.models import CategoryListing
 
+# Keys that move the selection; moving with them browses notes.
+BROWSE_KEYS = frozenset(
+    {
+        Qt.Key.Key_Up,
+        Qt.Key.Key_Down,
+        Qt.Key.Key_PageUp,
+        Qt.Key.Key_PageDown,
+        Qt.Key.Key_Home,
+        Qt.Key.Key_End,
+    }
+)
+
 
 class NoteTree(QTreeWidget):
     """Tree of categories and notes.
@@ -40,6 +52,8 @@ class NoteTree(QTreeWidget):
 
     # A note was clicked: note name.
     note_selected = pyqtSignal(str)
+    # The keyboard came to rest on a note after a short pause: note name.
+    note_browsed = pyqtSignal(str)
     # A note was dropped on a category: note name, target category id.
     note_moved = pyqtSignal(str, str)
     # An in-place rename was committed: old note name, new note name.
@@ -62,6 +76,11 @@ class NoteTree(QTreeWidget):
         root = self.invisibleRootItem()
         root.setFlags(root.flags() & ~Flag.ItemIsDropEnabled)
         self._filter = TreeFilter(self)
+        # Waiting for a pause keeps fast arrowing from loading every note.
+        self._browse_delay = QTimer(self)
+        self._browse_delay.setSingleShot(True)
+        self._browse_delay.setInterval(NOTE_BROWSE_DELAY_MS)
+        self._browse_delay.timeout.connect(self.announce_browsed_note)
         self.itemClicked.connect(self.on_item_clicked)
         self.itemActivated.connect(self.on_item_activated)
         self.itemChanged.connect(self.on_item_changed)
@@ -175,6 +194,18 @@ class NoteTree(QTreeWidget):
         QTimer.singleShot(
             0, lambda: self.note_moved.emit(note_name, category_id)
         )
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """Move as usual; after a pause, announce the note landed on."""
+        super().keyPressEvent(event)
+        if event.key() in BROWSE_KEYS:
+            self._browse_delay.start()
+
+    def announce_browsed_note(self) -> None:
+        """Emit ``note_browsed`` if the selection rests on a note."""
+        name = self.selected_note_name()
+        if name is not None:
+            self.note_browsed.emit(name)
 
     def on_item_clicked(self, item: QTreeWidgetItem) -> None:
         """Toggle a clicked category, or announce a clicked note."""

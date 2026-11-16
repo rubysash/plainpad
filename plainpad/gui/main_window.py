@@ -12,9 +12,9 @@ from datetime import datetime
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QSplitter
 
-from plainpad.config import APP_NAME, STATUS_TIME_FORMAT
+from plainpad.config import APP_NAME, FIRST_RUN_THEME, STATUS_TIME_FORMAT
 from plainpad.gui.actions import Actions, populate_menu_bar
-from plainpad.gui.dialogs import show_about
+from plainpad.gui.dialogs import confirm, show_about
 from plainpad.gui.session import SessionMemory
 from plainpad.gui.sidebar import Sidebar
 from plainpad.gui.tab_area import TabArea
@@ -22,25 +22,31 @@ from plainpad.gui.tree_commands import TreeCommands
 from plainpad.library import Library
 from plainpad.render import MarkdownRenderer
 from plainpad.style_store import StyleStore
+from plainpad.theme import apply_theme
+from plainpad.theme_store import ThemeStore
 
 
 class MainWindow(QMainWindow):
     """Top-level window that connects every widget to the Library."""
 
-    def __init__(self, library: Library, style_store: StyleStore) -> None:
+    def __init__(
+        self, library: Library, style_store: StyleStore, themes: ThemeStore
+    ) -> None:
         """Build the widgets, connect them, and restore the last session."""
         super().__init__()
         self._library = library
         self._style_store = style_store
+        self._themes = themes
         self._session = SessionMemory()
         self.build_layout()
-        self._actions = Actions(self)
+        self._actions = Actions(self, themes.themes())
         populate_menu_bar(self.menuBar(), self._actions)
         self._commands = TreeCommands(
             library, self._sidebar.tree, self._tabs.editor, self
         )
         self.connect_actions()
         self.connect_widgets()
+        self.switch_theme(self._session.theme() or FIRST_RUN_THEME)
         self.refresh_tree()
         self.restore_session()
 
@@ -49,12 +55,7 @@ class MainWindow(QMainWindow):
     def build_layout(self) -> None:
         """Create the splitter with the sidebar left and the tabs right."""
         self._sidebar = Sidebar(self)
-        self._tabs = TabArea(
-            MarkdownRenderer(),
-            self._style_store.load(),
-            self._style_store.default_css(),
-            self,
-        )
+        self._tabs = TabArea(MarkdownRenderer(), self)
         self._splitter = QSplitter(self)
         self._splitter.setChildrenCollapsible(False)
         self._splitter.addWidget(self._sidebar)
@@ -93,17 +94,25 @@ class MainWindow(QMainWindow):
             tabs.toggle_edit_and_view
         )
         actions.about.triggered.connect(lambda: show_about(self))
+        for name, action in actions.themes.items():
+            action.triggered.connect(
+                lambda _checked=False, theme=name: self.switch_theme(theme)
+            )
 
     def connect_widgets(self) -> None:
         """Connect widget and command signals to the slots below."""
         tree = self._sidebar.tree
         tree.note_selected.connect(self.open_note)
+        tree.note_browsed.connect(self.browse_note)
         tree.note_moved.connect(self._commands.move_note)
         tree.note_renamed.connect(self._commands.apply_note_rename)
         tree.category_renamed.connect(self._commands.apply_category_rename)
         self._sidebar.search_requested.connect(self.run_search)
         self._tabs.editor.save_due.connect(self.save_note)
         self._tabs.settings.save_due.connect(self.save_css)
+        self._tabs.preview.code_copied.connect(
+            lambda: self.statusBar().showMessage("Copied code block")
+        )
         self._commands.tree_changed.connect(self.refresh_tree)
         self._commands.note_created.connect(self.open_new_note)
         self._commands.status_message.connect(self.statusBar().showMessage)
@@ -111,16 +120,30 @@ class MainWindow(QMainWindow):
     # --- Notes -----------------------------------------------------------
 
     def open_note(self, name: str) -> None:
-        """Flush any pending save, then show a note in the Edit tab."""
+        """Load a note and switch to the Edit tab, as a click does."""
+        if self.load_note(name):
+            self._tabs.show_edit_tab()
+
+    def browse_note(self, name: str) -> None:
+        """Load a note but stay on the current tab, re-rendering View.
+
+        Used for arrow keys in the tree, so the user can step through
+        rendered notes without being sent back to Edit each time.
+        """
+        if self.load_note(name):
+            self._tabs.refresh_view()
+
+    def load_note(self, name: str) -> bool:
+        """Flush pending saves, put a note in the editor, return success."""
         self._tabs.flush_pending_saves()
         try:
             text = self._library.read_note(name)
         except (OSError, UnicodeDecodeError) as error:
             self.statusBar().showMessage(f"Could not open {name}: {error}")
-            return
+            return False
         self._tabs.editor.open_note(name, text)
         self.update_title()
-        self._tabs.show_edit_tab()
+        return True
 
     def open_new_note(self, name: str) -> None:
         """Show a just-created note, clearing any search that hides it."""
@@ -131,22 +154,51 @@ class MainWindow(QMainWindow):
         self._tabs.editor.setFocus()
 
     def save_note(self, name: str, text: str) -> None:
-        """Write a note and report success or failure in the status bar."""
-        self.save_and_report(lambda: self._library.save_note(name, text))
+        """Write a note; on failure the editor keeps it for a retry."""
+        if not self.save_and_report(
+            lambda: self._library.save_note(name, text)
+        ):
+            self._tabs.editor.save_failed(name)
 
     def save_css(self, css: str) -> None:
-        """Write the preview CSS and report the result in the status bar."""
-        self.save_and_report(lambda: self._style_store.save(css))
+        """Write the current theme's View CSS; on failure the editor keeps
+        it for a retry."""
+        theme = self._theme
+        if not self._style_store.is_editable(theme):
+            return
+        if not self.save_and_report(
+            lambda: self._style_store.save(theme, css)
+        ):
+            self._tabs.settings.save_failed()
 
-    def save_and_report(self, write: Callable[[], None]) -> None:
-        """Run a save and show its time, or its error, in the status bar."""
+    def switch_theme(self, name: str) -> None:
+        """Apply a theme to the window, the View tab, and the CSS editor.
+
+        An unknown or broken theme falls back to Default. Pending CSS is
+        saved first, under the theme it was typed for.
+        """
+        self._tabs.flush_pending_saves()
+        self._theme = self._themes.resolve(name)
+        apply_theme(QApplication.instance(), self._themes.qss(self._theme))
+        self._tabs.settings.load_css(
+            self._style_store.load(self._theme),
+            self._style_store.default_css(self._theme),
+            self._style_store.is_editable(self._theme),
+        )
+        self._actions.themes[self._theme].setChecked(True)
+        self._session.save_theme(self._theme)
+        self._tabs.refresh_view()
+
+    def save_and_report(self, write: Callable[[], None]) -> bool:
+        """Run a save, show its time or its error, and return success."""
         try:
             write()
         except OSError as error:
             self.statusBar().showMessage(f"Save failed: {error}")
-            return
+            return False
         saved_at = datetime.now().strftime(STATUS_TIME_FORMAT)
         self.statusBar().showMessage(f"Saved {saved_at}")
+        return True
 
     # --- Search and editing ----------------------------------------------
 
@@ -189,8 +241,19 @@ class MainWindow(QMainWindow):
             self.open_note(name)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        """Flush pending saves and remember the session before closing."""
+        """Flush pending saves and remember the session before closing.
+
+        If something still could not be saved, ask before quitting, since
+        closing would lose that text.
+        """
         self._tabs.flush_pending_saves()
+        if self._tabs.has_unsaved_changes() and not confirm(
+            self,
+            "Unsaved Changes",
+            "Some changes could not be saved. Quit anyway and lose them?",
+        ):
+            event.ignore()
+            return
         self._session.save(
             self, self._splitter, self._tabs.editor.current_note_name()
         )

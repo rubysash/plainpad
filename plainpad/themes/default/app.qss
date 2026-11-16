@@ -1,0 +1,246 @@
+/*
+ * Green CRT theme for the application chrome.
+ *
+ * Palette
+ *   background      #000000
+ *   phosphor green  #33ff33   text, focused borders
+ *   dim green       #1a8c1a   borders, inactive tabs, disabled text
+ *   faint green     #003300   hover background
+ *   selection       #33ff33 background with #000000 text
+ */
+
+QWidget {
+    background-color: #000000;
+    color: #33ff33;
+    font-family: "VT323", "Consolas", "Courier New", monospace;
+    font-size: 12pt;
+    selection-background-color: #33ff33;
+    selection-color: #000000;
+}
+
+QWidget:disabled {
+    color: #1a8c1a;
+}
+
+/* --- Menus ------------------------------------------------------------ */
+
+QMenuBar {
+    border-bottom: 1px solid #1a8c1a;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 2px 10px;
+}
+
+QMenuBar::item:selected,
+QMenuBar::item:pressed {
+    background-color: #33ff33;
+    color: #000000;
+}
+
+QMenu {
+    border: 1px solid #1a8c1a;
+}
+
+QMenu::item {
+    padding: 4px 24px 4px 16px;
+}
+
+QMenu::item:selected {
+    background-color: #33ff33;
+    color: #000000;
+}
+
+QMenu::item:disabled {
+    color: #1a8c1a;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #1a8c1a;
+    margin: 4px 8px;
+}
+
+/* --- Search box ------------------------------------------------------- */
+
+QLineEdit {
+    border: 1px solid #1a8c1a;
+    padding: 4px;
+}
+
+QLineEdit:focus {
+    border-color: #33ff33;
+}
+
+/* --- Category tree ---------------------------------------------------- */
+
+QTreeWidget {
+    border: 1px solid #1a8c1a;
+    outline: none;
+}
+
+QTreeWidget:focus {
+    border-color: #33ff33;
+}
+
+QTreeWidget::item {
+    padding: 2px;
+}
+
+QTreeWidget::item:hover:!selected {
+    background-color: #003300;
+}
+
+QTreeWidget::item:selected {
+    background-color: #33ff33;
+    color: #000000;
+}
+
+QTreeWidget::branch {
+    background-color: #000000;
+}
+
+/* The F2 rename box sits inside a row; the search box padding above
+   would squeeze its text and clip it. */
+QTreeWidget QLineEdit {
+    padding: 0px;
+    margin: 0px;
+    border: 1px solid #33ff33;
+}
+
+/* --- Tabs ------------------------------------------------------------- */
+
+QTabWidget::pane {
+    border: 1px solid #1a8c1a;
+}
+
+QTabBar::tab {
+    color: #1a8c1a;
+    border: 1px solid #1a8c1a;
+    padding: 4px 16px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:hover {
+    color: #33ff33;
+}
+
+QTabBar::tab:selected {
+    color: #33ff33;
+    border-color: #33ff33;
+}
+
+/* --- Editors ---------------------------------------------------------- */
+
+QPlainTextEdit {
+    border: none;
+    padding: 4px;
+}
+
+QPlainTextEdit:disabled {
+    color: #1a8c1a;
+}
+
+/* --- Buttons ---------------------------------------------------------- */
+
+QPushButton {
+    border: 1px solid #1a8c1a;
+    padding: 4px 12px;
+    min-width: 64px;
+}
+
+QPushButton:hover,
+QPushButton:focus {
+    border-color: #33ff33;
+}
+
+QPushButton:pressed {
+    background-color: #33ff33;
+    color: #000000;
+}
+
+/* --- Splitter --------------------------------------------------------- */
+
+QSplitter::handle {
+    background-color: #1a8c1a;
+}
+
+QSplitter::handle:horizontal {
+    width: 2px;
+}
+
+QSplitter::handle:hover {
+    background-color: #33ff33;
+}
+
+/* --- Scroll bars ------------------------------------------------------ */
+
+QScrollBar:vertical {
+    width: 12px;
+    border-left: 1px solid #1a8c1a;
+}
+
+QScrollBar:horizontal {
+    height: 12px;
+    border-top: 1px solid #1a8c1a;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #1a8c1a;
+    min-height: 24px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #1a8c1a;
+    min-width: 24px;
+}
+
+QScrollBar::handle:hover {
+    background-color: #33ff33;
+}
+
+QScrollBar::add-line,
+QScrollBar::sub-line {
+    width: 0;
+    height: 0;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none;
+}
+
+/* --- Status bar ------------------------------------------------------- */
+
+QStatusBar {
+    border-top: 1px solid #1a8c1a;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+/* --- Dialogs ---------------------------------------------------------- */
+
+QMessageBox,
+QInputDialog {
+    border: 1px solid #1a8c1a;
+}
+
+QToolTip {
+    background-color: #000000;
+    color: #33ff33;
+    border: 1px solid #1a8c1a;
+}
+
+QPushButton:disabled {
+    color: #1a8c1a;
+    border-color: #0d460d;
+}
+
+/* --- Labels ----------------------------------------------------------- */
+
+QLabel#hint {
+    color: #1a8c1a;
+}

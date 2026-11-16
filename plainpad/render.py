@@ -2,7 +2,9 @@
 
 import markdown
 
+from plainpad.code_blocks import add_copy_links
 from plainpad.config import MARKDOWN_EXTENSIONS, PREVIEW_PAGE_TEMPLATE
+from plainpad.models import RenderedPage
 
 
 class MarkdownRenderer:
@@ -23,11 +25,12 @@ class MarkdownRenderer:
         # reset() clears state left over from the previous document.
         return self._markdown.reset().convert(markdown_text)
 
-    def page_html(self, markdown_text: str, css: str) -> str:
+    def render_page(self, markdown_text: str, css: str) -> RenderedPage:
         """Return a full HTML document with the CSS in a style element.
 
-        The page declares UTF-8 and contains no scripts.
+        The page declares UTF-8 and contains no scripts. Each code block
+        has a copy link; its text is returned with the page.
         """
-        return PREVIEW_PAGE_TEMPLATE.format(
-            css=css, body=self.body_html(markdown_text)
-        )
+        body, code_blocks = add_copy_links(self.body_html(markdown_text))
+        page = PREVIEW_PAGE_TEMPLATE.format(css=css, body=body)
+        return RenderedPage(page, code_blocks)

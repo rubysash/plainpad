@@ -11,9 +11,13 @@ seconds after you stop typing.
 - Categories you define, collapsed by default, with drag and drop
 - Keyword search over note names and text that filters the tree
 - Edit tab for markdown, View tab for the rendered page
-- Settings tab holding the CSS used by the View tab
+- Settings tab holding the CSS used by the View tab, kept per theme
+- A copy button on every code block in the View tab
+- Arrow keys in the sidebar browse notes after a short pause
 - Autosave, per-note undo and redo
-- Black and green CRT theme
+- Themes under Settings > Theme: CRT green, Dark (Darkly), Light, and a
+  frozen Default you can always fall back to. Add your own by dropping a
+  folder into `plainpad/themes/`
 
 ## Setup
 
@@ -58,7 +62,7 @@ data/
   notes/        your notes, one .md file each
   trash/        notes you deleted
   index.json    categories
-  preview.css   your View tab CSS
+  styles/       your View tab CSS, one file per theme you edited
 ```
 
 Deleting a note moves it to `data/trash/`. Deleting a category moves its

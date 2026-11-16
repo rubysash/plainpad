@@ -9,6 +9,7 @@ from plainpad.config import (
     SETTINGS_GEOMETRY_KEY,
     SETTINGS_LAST_NOTE_KEY,
     SETTINGS_SPLITTER_KEY,
+    SETTINGS_THEME_KEY,
 )
 
 
@@ -36,6 +37,15 @@ class SessionMemory:
         """Return the name of the note open at the last exit, or None."""
         name = self._settings.value(SETTINGS_LAST_NOTE_KEY, "", type=str)
         return name or None
+
+    def theme(self) -> str | None:
+        """Return the name of the theme chosen last, or None."""
+        name = self._settings.value(SETTINGS_THEME_KEY, "", type=str)
+        return name or None
+
+    def save_theme(self, name: str) -> None:
+        """Remember the chosen theme for the next run."""
+        self._settings.setValue(SETTINGS_THEME_KEY, name)
 
     def save(
         self,
