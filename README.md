@@ -11,13 +11,16 @@ seconds after you stop typing.
 - Categories you define, collapsed by default, with drag and drop
 - Keyword search over note names and text that filters the tree
 - Edit tab for markdown, View tab for the rendered page
-- Settings tab holding the CSS used by the View tab, kept per theme
+- Right-click the sidebar to open the notes folder in Explorer (Finder,
+  or your Linux file manager), or a terminal there. On Windows you can
+  pick Windows Terminal, Command Prompt, or PowerShell
 - A copy button on every code block in the View tab
 - Arrow keys in the sidebar browse notes after a short pause
 - Autosave, per-note undo and redo
 - Themes under Settings > Theme: CRT green, Dark (Darkly), Light, and a
   frozen Default you can always fall back to. Add your own by dropping a
-  folder into `plainpad/themes/`
+  folder into `plainpad/themes/`. Edit a theme's `preview.css` by hand to
+  restyle the View tab
 
 ## Setup
 
@@ -50,7 +53,7 @@ a message box.
 | Del | Delete the selected note or category |
 | Ctrl+F | Jump to search |
 | Ctrl+E | Switch between Edit and View |
-| Ctrl+1 / 2 / 3 | Edit / View / Settings tab |
+| Ctrl+1 / 2 | Edit / View tab |
 | Ctrl+S | Save now |
 | Ctrl+Z / Ctrl+Y | Undo / redo |
 | Ctrl+Q | Exit |
@@ -62,7 +65,6 @@ data/
   notes/        your notes, one .md file each
   trash/        notes you deleted
   index.json    categories
-  styles/       your View tab CSS, one file per theme you edited
 ```
 
 Deleting a note moves it to `data/trash/`. Deleting a category moves its

@@ -238,9 +238,3 @@ QPushButton:disabled {
     color: #1a8c1a;
     border-color: #0d460d;
 }
-
-/* --- Labels ----------------------------------------------------------- */
-
-QLabel#hint {
-    color: #1a8c1a;
-}

@@ -53,6 +53,11 @@ class NoteStore:
         notes_dir.mkdir(parents=True, exist_ok=True)
         trash_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def folder(self) -> Path:
+        """The folder that holds the note files."""
+        return self._notes_dir
+
     def names(self) -> list[str]:
         """Return every note name, sorted without regard to case."""
         found = (

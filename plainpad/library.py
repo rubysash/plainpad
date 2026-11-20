@@ -59,6 +59,14 @@ class Library:
         """Return True if a note with this name exists."""
         return self._notes.exists(name)
 
+    def note_path(self, name: str) -> Path:
+        """Return the file a note is stored in."""
+        return self._notes.path_of(name)
+
+    def notes_folder(self) -> Path:
+        """Return the folder that holds every note file."""
+        return self._notes.folder
+
     def search(self, query: str) -> set[str]:
         """Return the names of notes matching a keyword."""
         return find_matching_notes(self._notes, query)

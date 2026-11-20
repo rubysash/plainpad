@@ -24,10 +24,10 @@ are covered by unit tests.
 +--------------------------------------------------------------+
 | File  Edit  View  Help                                       |
 +--------------------+-----------------------------------------+
-| [ search...      ] | [ Edit ] [ View ] [ Settings ]          |
+| [ search...      ] | [ Edit ] [ View ]                       |
 |                    |                                         |
-| > Work             |  markdown source, rendered page,        |
-| v Recipes          |  or preview CSS, depending on the tab   |
+| > Work             |  markdown source or rendered page,      |
+| v Recipes          |  depending on the tab                   |
 |     2026-11-16...  |                                         |
 |     Chili          |                                         |
 | > Uncategorized    |                                         |
@@ -79,6 +79,38 @@ The two sides are separated by a draggable splitter.
 - Creating a note clears an active search, so the new note is visible.
 - A note whose file is not valid UTF-8 matches on its name only.
 
+### 3.4 Right-click menu
+
+Right-clicking the tree selects the row under the cursor (without opening
+a note) and shows these items. Right-clicking empty space clears the
+selection.
+
+- **New Note** and **New Category**, the same as File > New Note and
+  File > New Category. A new note goes into the right-clicked category,
+  or the category of the right-clicked note, or `Uncategorized` when
+  empty space was right-clicked.
+- **Show in Explorer** (Windows), **Show in Finder** (macOS), or **Open in
+  File Manager** (Linux). On a note row it opens the notes folder with
+  that note's file selected. Linux has no standard way to select a file,
+  so there it only opens the folder. On a category row or empty space it
+  opens the notes folder, since categories exist only in `index.json`.
+- **Open Terminal Here** opens a terminal whose working folder is the
+  notes folder. On Windows this is Windows Terminal (`wt`) with the
+  user's default profile, which may be WSL; the item is hidden if
+  Windows Terminal is not installed. On macOS it is Terminal. On Linux
+  it is the first of `x-terminal-emulator`, `gnome-terminal`, `konsole`,
+  `xfce4-terminal`, `kitty`, `alacritty`, `xterm` that is installed, and
+  the item is hidden if none is.
+- Windows only: **Open Command Prompt Here** (`cmd.exe`) and **Open
+  PowerShell Here** (PowerShell 7, `pwsh`, if installed, otherwise
+  Windows PowerShell), both in the notes folder. They start in a new
+  console, which Windows shows in Windows Terminal or the classic console
+  depending on the user's default terminal setting.
+
+If the program cannot be started, the status bar says why. Only Windows
+has been tried by hand; macOS and Linux are covered by unit tests of the
+commands only.
+
 ## 4. Right side tabs
 
 ### 4.1 Edit
@@ -92,8 +124,10 @@ The two sides are separated by a draggable splitter.
 ### 4.2 View
 
 - The open note rendered from markdown to HTML with the current theme's
-  View CSS (see 4.3).
-- Re-rendered each time the tab is shown.
+  `preview.css` (see 9).
+- Re-rendered each time the tab is shown. The theme's `preview.css` is
+  read again on every render, so hand edits to it show up the next time
+  View is shown.
 - Every code block has a **copy** link in its top right corner. Clicking
   it puts the block's text on the clipboard, exactly as written in the
   note, and the status bar says so. The link is a plain
@@ -104,19 +138,6 @@ The two sides are separated by a draggable splitter.
   other link types do nothing. Links to an anchor in the same note scroll
   the page.
 - Markdown extensions: fenced code blocks, tables, sane lists.
-
-### 4.3 Settings
-
-- One CSS editor showing the current theme's View CSS. This CSS styles the
-  View tab only.
-- Each theme keeps its own CSS. Until it is edited, a theme uses the CSS it
-  ships with. Switching themes saves pending CSS under the theme it was
-  typed for.
-- Autosaves with the same 4 second rule as notes.
-- A "Reset to default" button restores the current theme's shipped CSS,
-  after a confirmation. The reset is one undoable edit.
-- For the Default theme the editor is read-only, the button is disabled,
-  and a hint explains why (see 9).
 
 ## 5. Autosave
 
@@ -164,7 +185,6 @@ data/
   notes/        one .md file per note, UTF-8
   trash/        deleted notes
   index.json    categories and which note is in which
-  styles/       the Settings tab CSS, one <theme>.css per edited theme
 ```
 
 `data/` sits in the project folder and is git-ignored. The location is one
@@ -213,7 +233,6 @@ are remembered with `QSettings`.
 | Edit | Find | Ctrl+F (focuses the search box) |
 | View | Edit tab | Ctrl+1 |
 | View | View tab | Ctrl+2 |
-| View | Settings tab | Ctrl+3 |
 | View | Toggle Edit / View | Ctrl+E |
 | Settings | Theme > (one item per theme, current one checked) | |
 | Help | About | |
@@ -221,8 +240,10 @@ are remembered with `QSettings`.
 Rename and Delete act on the selected tree row, whether it is a note or a
 category. Rename edits the row in place.
 
-The Edit menu items act on whichever text box has focus: the note editor,
-the CSS editor, or the search box.
+The Edit menu items act on whichever text box has focus: the note editor
+or the search box.
+
+The tree's right-click menu is described in 3.4.
 
 ## 9. Themes
 
@@ -238,21 +259,25 @@ plainpad/themes/<name>/
 Any folder with both stylesheets is a theme and appears in
 Settings > Theme with no code change. Without `theme.json` the menu shows
 the folder name. Default is listed first, the rest by label. Switching is
-instant and remembered across restarts. The chrome is applied on top of
+instant and remembered across restarts.
+
+There is no style editor in the app. To change a theme, edit its files by
+hand. Changes to `preview.css` show the next time the View tab renders;
+changes to `app.qss` show after switching themes or restarting. The chrome is applied on top of
 Qt's Fusion style, because the native Windows style ignores parts of a
 stylesheet.
 
 | Theme | Look |
 | --- | --- |
 | `default` | The original CRT green. Never changes; see below. |
-| `crt` | The same CRT green, editable. Used on first launch. |
+| `crt` | The same CRT green, in files meant to be edited. Used on first launch. |
 | `dark` | ttkbootstrap's "darkly" palette: `#222222` background, `#ffffff` text, `#375a7f` accent, `#00bc8c` links. |
 | `light` | White background, `#1f2328` text (15.8:1), `#0969da` accent and links (5.2:1), `#57606a` muted text (6.4:1). WCAG AA or better throughout. |
 
 Default is the safe fallback:
 
-- Its files never change. A test checks their hashes.
-- Its View CSS cannot be edited, so bad CSS can never break it.
+- Its files never change. A test checks their hashes, so bad CSS can
+  never break it.
 - An unknown, missing, or incomplete theme falls back to it.
 
 CRT details: black `#000000`, phosphor green `#33ff33`, dim green
@@ -286,27 +311,27 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/render.py` | `MarkdownRenderer` | Markdown and CSS to an HTML page |
 | `plainpad/code_blocks.py` | `add_copy_links()` | Copy links on code blocks, and each block's text |
 | `plainpad/theme_store.py` | `ThemeStore` | Find themes and read their stylesheets |
-| `plainpad/style_store.py` | `StyleStore` | Load and save each theme's View CSS; Default is read-only |
+| `plainpad/desktop_launch.py` | `DesktopLauncher` | Open the file browser, a terminal, Command Prompt, or PowerShell, per OS |
 | `plainpad/theme.py` | `apply_theme()` | Put a theme's `app.qss` on the application |
 | `plainpad/autosave.py` | `AutosaveTimer` | The 4 second idle timer |
 | `plainpad/gui/main_window.py` | `MainWindow` | Layout and signal wiring |
 | `plainpad/gui/tree_commands.py` | `TreeCommands` | Create, rename, move, delete notes and categories |
+| `plainpad/gui/location_commands.py` | `LocationCommands` | The tree's right-click menu: file browser and terminals |
 | `plainpad/gui/session.py` | `SessionMemory` | Window size, splitter, last note via `QSettings` |
-| `plainpad/gui/actions.py` | `Actions`, `populate_menu_bar()` | Menu items and key bindings |
+| `plainpad/gui/actions.py` | `Actions`, `populate_menu_bar()`, `build_tree_menu()` | Menu items and key bindings |
 | `plainpad/gui/sidebar.py` | `Sidebar` | Search box above the tree |
 | `plainpad/gui/note_tree.py` | `NoteTree` | Collapsible tree, drag and drop |
 | `plainpad/gui/tree_filter.py` | `TreeFilter` | Search filtering and restoring expanded state |
 | `plainpad/gui/tree_items.py` | `make_item()`, `identity_of()` | What a tree row is and how to read it |
-| `plainpad/gui/tab_area.py` | `TabArea` | The three tabs; flush and render on tab change |
+| `plainpad/gui/tab_area.py` | `TabArea` | The two tabs; flush and render on tab change |
 | `plainpad/gui/editor_tab.py` | `EditorTab` | Markdown editor, per-note undo |
 | `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view |
-| `plainpad/gui/settings_tab.py` | `SettingsTab` | CSS editor |
 | `plainpad/gui/dialogs.py` | `ask_for_name()`, `confirm()`, `show_about()` | The modal prompts |
 | `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
 | `tests/test_*.py` | | Unit tests for layer 1 and 2 |
-| `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes |
+| `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes, right-click menu |
 
-Size: about 2,500 lines of Python (half of it docstrings and comments)
+Size: about 2,600 lines of Python (half of it docstrings and comments)
 across 31 source files. `main_window.py` and `note_tree.py` run a little
 over the 200 line guideline.
 

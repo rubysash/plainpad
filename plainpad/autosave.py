@@ -1,7 +1,7 @@
 """The idle timer behind autosave.
 
-Used by both the note editor and the CSS editor, so the "save after four
-seconds without typing" rule is written once.
+Kept apart from the note editor so the "save after four seconds without
+typing" rule lives in one small, separately readable place.
 """
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal

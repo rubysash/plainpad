@@ -184,12 +184,6 @@ QPushButton:disabled {
     border-color: #d0d7de;
 }
 
-/* --- Labels ----------------------------------------------------------- */
-
-QLabel#hint {
-    color: #57606a;
-}
-
 /* --- Splitter --------------------------------------------------------- */
 
 QSplitter::handle {

@@ -21,8 +21,8 @@ flake8 plainpad tests                 # PEP 8 check, must be clean
 Three layers. A lower layer never imports a higher one.
 
 1. Storage and logic: `crud.py`, `categories.py`, `search.py`, `render.py`,
-   `style_store.py`, `atomic_file.py`, `models.py`, `config.py`. No Qt
-   imports here.
+   `theme_store.py`, `desktop_launch.py`, `atomic_file.py`, `models.py`,
+   `config.py`. No Qt imports here.
 2. Facade: `library.py`. The GUI reads and writes notes and categories only
    through `Library`.
 3. GUI: `plainpad/gui/`, plus `autosave.py` and `theme.py`.

@@ -21,9 +21,6 @@ DATA_DIR = PROJECT_DIR / "data"
 NOTES_DIR_NAME = "notes"
 TRASH_DIR_NAME = "trash"
 INDEX_FILE_NAME = "index.json"
-# The user's View tab CSS, one file per theme: styles/<theme>.css.
-STYLES_DIR_NAME = "styles"
-STYLE_FILE_EXTENSION = ".css"
 
 # --- Themes --------------------------------------------------------------
 
@@ -33,11 +30,40 @@ THEME_QSS_FILE_NAME = "app.qss"
 THEME_PREVIEW_CSS_FILE_NAME = "preview.css"
 THEME_INFO_FILE_NAME = "theme.json"
 
-# The original CRT look. Its files never change and its CSS cannot be
-# edited, so it is always there to fall back to.
+# The original CRT look. Its files never change, so it is always there to
+# fall back to.
 DEFAULT_THEME = "default"
-# What a first launch uses: the same look, but editable.
+# What a first launch uses: the same look, in files that may be edited.
 FIRST_RUN_THEME = "crt"
+
+# --- File browser and terminal -------------------------------------------
+
+# Values of sys.platform.
+WINDOWS_PLATFORM = "win32"
+MACOS_PLATFORM = "darwin"
+
+FILE_BROWSER_LABELS = {
+    WINDOWS_PLATFORM: "Show in &Explorer",
+    MACOS_PLATFORM: "Show in &Finder",
+}
+OTHER_FILE_BROWSER_LABEL = "Open in File &Manager"
+
+# Windows Terminal opens the user's default profile, which may be WSL.
+WINDOWS_TERMINAL_PROGRAM = "wt"
+WINDOWS_COMMAND_PROMPT = "cmd.exe"
+# PowerShell 7 if installed, else the Windows PowerShell every Windows has.
+WINDOWS_POWERSHELL_PROGRAMS = ("pwsh", "powershell.exe")
+MACOS_TERMINAL_APP = "Terminal"
+# Tried in order. Each one starts in the folder it is run from.
+LINUX_TERMINAL_PROGRAMS = (
+    "x-terminal-emulator",
+    "gnome-terminal",
+    "konsole",
+    "xfce4-terminal",
+    "kitty",
+    "alacritty",
+    "xterm",
+)
 
 # --- Files ---------------------------------------------------------------
 
