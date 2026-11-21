@@ -146,6 +146,17 @@ class Library:
         """
         return self.add_image(self._sources.read(address))
 
+    def stored_image_file(self, address: str) -> Path | None:
+        """Return the stored image file an address names, if it exists.
+
+        The address may be a note's relative link or the ``file:``
+        address the View tab resolves it to. Anything else is None.
+        """
+        name = self._exporter.stored_name(address)
+        if name is None or not self._images.exists(name):
+            return None
+        return self._images.path_of(name)
+
     def clean_up_unused_images(self) -> int:
         """Move images that no note links to into the trash.
 

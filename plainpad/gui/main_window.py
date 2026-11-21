@@ -166,6 +166,9 @@ class MainWindow(QMainWindow):
         self._tabs.preview.selection_copied.connect(
             self._clipboard.replace_selection_copy
         )
+        self._tabs.preview.image_copy_requested.connect(
+            self._clipboard.copy_image
+        )
         self._clipboard.status_message.connect(self.statusBar().showMessage)
         self._commands.tree_changed.connect(self.refresh_tree)
         self._commands.note_created.connect(self.open_new_note)

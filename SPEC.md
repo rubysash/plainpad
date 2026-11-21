@@ -185,10 +185,22 @@ Out of a note:
   because other programs cannot read Plainpad's files. The clipboard also
   carries a plain text version.
 - Copy in the Edit tab is unchanged: it copies the markdown text.
+- **Copy Image** on the View tab's right-click menu, over a stored
+  picture, copies that one picture with no HTML: the file itself, which
+  keeps every byte so a GIF stays animated, plus a bitmap of it for
+  programs that take no files. Over a picture on the web, the menu item
+  is the browser engine's own.
+- The View tab never rewrites a copy that holds a bitmap; that is a
+  copied picture, not a selection.
 
-Tried by hand: nothing yet. The automated tests cover the conversions and
-the clipboard contents, not how each program (Google Docs, Gmail, Outlook,
-Word, Thunderbird, LibreOffice) accepts them.
+Tried by hand: Gmail in Firefox on Windows. It drops every picture that
+arrives inside pasted HTML, whether the picture is a `data:` address or
+a `file:` address, and with or without a bitmap beside the HTML. It
+takes a lone bitmap or a lone file. So text and pictures copied together
+reach Gmail as text only; each picture has to be copied by itself with
+Copy Image. Google Docs, Outlook, Word, Thunderbird, and LibreOffice are
+not tried yet. The automated tests cover the conversions and the
+clipboard contents, not how each program accepts them.
 
 ### 4.2 View
 
@@ -410,7 +422,7 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/main_window.py` | `MainWindow` | Layout and signal wiring |
 | `plainpad/gui/tree_commands.py` | `TreeCommands` | Create, rename, move, delete notes and categories |
 | `plainpad/gui/location_commands.py` | `LocationCommands` | The tree's right-click menu: file browser and terminals |
-| `plainpad/gui/clipboard_commands.py` | `ClipboardCommands` | Paste images and formatted text; copy a note out as rich text |
+| `plainpad/gui/clipboard_commands.py` | `ClipboardCommands` | Paste images and formatted text; copy a note out as rich text, or one image as a picture |
 | `plainpad/gui/pasted_content.py` | `PastedContent` | Which images a paste or drop offers |
 | `plainpad/gui/session.py` | `SessionMemory` | Window size, splitter, last note via `QSettings` |
 | `plainpad/gui/actions.py` | `Actions`, `populate_menu_bar()`, `build_tree_menu()` | Menu items and key bindings |
@@ -420,7 +432,7 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/tree_items.py` | `make_item()`, `identity_of()` | What a tree row is and how to read it |
 | `plainpad/gui/tab_area.py` | `TabArea` | The two tabs; flush and render on tab change |
 | `plainpad/gui/editor_tab.py` | `EditorTab` | Markdown editor, per-note undo |
-| `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view |
+| `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view and its right-click menu |
 | `plainpad/gui/dialogs.py` | `ask_for_name()`, `confirm()`, `show_about()` | The modal prompts |
 | `plainpad/gui/shortcuts_dialog.py` | `ShortcutsDialog`, `menu_shortcuts()` | Help > Keyboard Shortcuts |
 | `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
@@ -428,9 +440,10 @@ Three layers. Lower layers never import higher ones.
 | `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes, right-click menu |
 | `tests/test_gui_images.py` | | pytest-qt tests of image paste and drop, Paste Formatted, rich copy from both tabs, cleanup |
 | `tests/test_gui_shortcuts.py` | | pytest-qt tests of the Keyboard Shortcuts menu item and table |
+| `tests/test_gui_copy_image.py` | | pytest-qt tests of Copy Image from the View tab |
 | `tests/conftest.py`, `tests/gui_support.py`, `tests/image_samples.py` | | The shared window fixture, GUI stand-ins, sample images and a network stand-in |
 
-Size: about 3,750 lines of Python (half of it docstrings and comments)
+Size: about 3,850 lines of Python (half of it docstrings and comments)
 across 38 source files. `main_window.py` and `note_tree.py` run over the
 200 line guideline.
 

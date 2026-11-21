@@ -186,3 +186,16 @@ def test_rich_text_round_trip(tmp_path: Path) -> None:
     imported = library.import_rich_text(html)
     assert imported.markdown == f"# Title\n\nSome **bold**.\n\n{link}"
     assert imported.images_missed == 0
+
+
+def test_stored_image_file_reads_links_and_file_addresses(
+    library: Library,
+) -> None:
+    link = library.add_image(PNG)
+    path = library.images_folder() / link.removeprefix("![](../images/")[:-1]
+    relative = link.removeprefix("![](")[:-1]
+    assert library.stored_image_file(relative) == path
+    assert library.stored_image_file(path.as_uri()) == path
+    assert library.stored_image_file("https://example.com/a.png") is None
+    missing = library.images_folder() / "0000000000000000.png"
+    assert library.stored_image_file(missing.as_uri()) is None

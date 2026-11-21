@@ -3,8 +3,17 @@
 from pathlib import Path
 
 from PyQt6.QtCore import QUrl, pyqtSignal
-from PyQt6.QtGui import QColor, QDesktopServices
-from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
+from PyQt6.QtGui import (
+    QAction,
+    QColor,
+    QContextMenuEvent,
+    QDesktopServices,
+)
+from PyQt6.QtWebEngineCore import (
+    QWebEngineContextMenuRequest,
+    QWebEnginePage,
+    QWebEngineSettings,
+)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QWidget
 
@@ -60,6 +69,8 @@ class PreviewTab(QWebEngineView):
     # The page's selection was copied: the raw HTML and the plain text
     # the browser engine put on the clipboard.
     selection_copied = pyqtSignal(str, str)
+    # Copy Image was chosen on a local picture: its file: address.
+    image_copy_requested = pyqtSignal(str)
 
     def __init__(
         self,
@@ -109,6 +120,37 @@ class PreviewTab(QWebEngineView):
         """Select the whole page, as Edit > Select All does."""
         self.triggerPageAction(QWebEnginePage.WebAction.SelectAll)
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        """Show the page's menu, with Copy Image taken over for files.
+
+        The engine's own Copy Image puts HTML beside the bitmap, and
+        some programs, Gmail in Firefox among them, then drop the
+        picture. For a local picture the app makes the copy instead;
+        a picture on the web keeps the engine's action.
+        """
+        menu = self.createStandardContextMenu()
+        request = self.lastContextMenuRequest()
+        engine_copy = self.pageAction(
+            QWebEnginePage.WebAction.CopyImageToClipboard
+        )
+        image = QWebEngineContextMenuRequest.MediaType.MediaTypeImage
+        if (
+            request is not None
+            and request.mediaType() == image
+            and request.mediaUrl().isLocalFile()
+            and engine_copy in menu.actions()
+        ):
+            address = request.mediaUrl().toString()
+            ours = QAction(engine_copy.text(), menu)
+            ours.triggered.connect(
+                lambda: self.image_copy_requested.emit(address)
+            )
+            menu.insertAction(engine_copy, ours)
+            menu.removeAction(engine_copy)
+        # exec, not popup: the menu has no parent, so Python frees it as
+        # soon as this method returns, and a popup would vanish unseen.
+        menu.exec(event.globalPos())
+
     def on_clipboard_changed(self) -> None:
         """Report a copy made from this page so it can be made portable.
 
@@ -116,13 +158,16 @@ class PreviewTab(QWebEngineView):
         the clipboard after the browser engine's own copy. That copy
         carries the theme's colors and names images by local file, so
         it is announced for replacement. A copy the app already built
-        carries the marker format and is left alone.
+        carries the marker format and is left alone, and so is one with
+        a bitmap, which is a copied picture rather than a selection.
         """
         focus = QApplication.focusWidget()
         if focus is None or not (focus is self or self.isAncestorOf(focus)):
             return
         mime = QApplication.clipboard().mimeData()
-        if mime.hasHtml() and not mime.hasFormat(RICH_COPY_MARKER_FORMAT):
+        if mime.hasImage() or mime.hasFormat(RICH_COPY_MARKER_FORMAT):
+            return
+        if mime.hasHtml():
             self.selection_copied.emit(mime.html(), mime.text())
 
     def copy_code_block(self, index: int) -> None:

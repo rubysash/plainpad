@@ -22,6 +22,8 @@ seconds after you stop typing.
 - Copy Note as Rich Text (Ctrl+Shift+C), or Ctrl+C in the View tab, copies
   formatted text with the images embedded, for pasting into a document or
   an email
+- Right-click a picture in the View tab and choose Copy Image to copy just
+  that picture. Gmail in Firefox only accepts pictures copied this way
 - Arrow keys in the sidebar browse notes after a short pause
 - Autosave, per-note undo and redo
 - Themes under Settings > Theme: CRT green, Dark (Darkly), Light, and a

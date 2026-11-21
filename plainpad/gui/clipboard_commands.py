@@ -1,7 +1,8 @@
 """Images and formatted text moving between notes and other programs.
 
 ClipboardCommands is the half of the window's wiring that pastes pictures
-and formatted text into the open note and copies a note out as rich text.
+and formatted text into the open note, copies a note out as rich text,
+and copies a single stored image out as a picture.
 It calls Library, tells the editor what to insert, and reports back
 through a signal that MainWindow connects.
 """
@@ -9,7 +10,8 @@ through a signal that MainWindow connects.
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
-from PyQt6.QtCore import QMimeData, QObject, Qt, pyqtSignal
+from PyQt6.QtCore import QMimeData, QObject, Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QApplication
 
 from plainpad.config import RICH_COPY_MARKER_FORMAT
@@ -135,6 +137,27 @@ class ClipboardCommands(QObject):
             return
         self.put_rich_text(html, text)
         self.status_message.emit("Copied selection as rich text")
+
+    def copy_image(self, address: str) -> None:
+        """Put one stored image on the clipboard as a picture, no HTML.
+
+        Gmail in Firefox drops every picture that arrives inside HTML
+        but takes a lone file or bitmap, so both go and nothing else.
+        The file keeps every byte, which keeps a GIF animated; the
+        bitmap is for programs that take no files.
+        """
+        path = self._library.stored_image_file(address)
+        if path is None:
+            self.status_message.emit("Could not find that image")
+            return
+        mime = QMimeData()
+        mime.setUrls([QUrl.fromLocalFile(str(path))])
+        bitmap = QImage(str(path))
+        if not bitmap.isNull():
+            mime.setImageData(bitmap)
+        mime.setData(RICH_COPY_MARKER_FORMAT, b"1")
+        QApplication.clipboard().setMimeData(mime)
+        self.status_message.emit("Copied image")
 
     def put_rich_text(self, html: str, text: str) -> None:
         """Set the clipboard to formatted text with a plain twin.
