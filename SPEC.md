@@ -14,6 +14,7 @@ are covered by unit tests.
 | GUI toolkit | PyQt6 |
 | Rendered view | `QWebEngineView` (full CSS support) |
 | Storage | One flat folder of `.md` files plus a JSON index for categories |
+| Images | One shared folder; files named by content hash, kept in their original format |
 | Categories | One level deep; each note is in exactly one category |
 | Search | Case-insensitive match on note name and note body |
 | Python | 3.13, in a `.venv` in the project folder |
@@ -120,11 +121,83 @@ commands only.
   note has its own undo and redo history. Switching notes does not lose it.
   Saving does not clear it. History is not kept across restarts.
 - Disabled with a hint message when no note is open.
+- Pasting (Ctrl+V) and dropping insert plain text, except for images;
+  see 4.3.
+
+### 4.3 Images
+
+A note shows an image with an ordinary markdown link to a file in
+`data/images/`: `![](../images/3fa9c2e17b04d6a1.png)`. The link is
+relative to the notes folder, so it also works in other markdown viewers.
+The editor shows the link; the picture shows in the View tab.
+
+Pasting or dropping any of these into the editor stores a copy of the
+image and inserts its link at the cursor:
+
+| Paste or drop holds | What is stored |
+| --- | --- |
+| Local image files, from Explorer | An exact copy of each file |
+| A picture copied in a browser ("Copy image"), or dragged from a web page | The original, downloaded from its address; the bitmap as PNG if that fails |
+| A bitmap only, such as a screenshot | PNG |
+
+- PNG, JPEG, GIF, and WebP are accepted, judged by how the file starts,
+  not by its extension. Anything else is refused with a status bar
+  message. The limit is 20 MB per image.
+- Files are never converted. An animated GIF stays animated because its
+  bytes are copied as they are. "Copy image" in a browser puts only one
+  still frame on the clipboard, which is why the original is downloaded
+  when its address is known.
+- A bitmap that comes with text, as a spreadsheet's copied cells do, is
+  pasted as the text.
+- The file name is the first 16 hex digits of the content's SHA-256, so
+  the same image pasted twice, or into two notes, is one file.
+- An image belongs to no note. Sharing one between notes is copying the
+  link; moving one is moving the link; removing the link removes the
+  image from that note and leaves the file alone, so undo and other notes
+  keep working.
+- **File > Clean Up Unused Images** saves pending edits, then moves every
+  image that no note links to into `data/trash/images/` and reports the
+  count. Notes in the trash count as linking. Nothing is erased.
+
+### 4.4 Rich copy and paste
+
+Into a note:
+
+- **Edit > Paste Formatted** (Ctrl+Shift+V) converts the clipboard's
+  formatted text to markdown: headings, bold, italic, lists, links,
+  tables, code. Each picture in it is copied into `data/images/` from
+  wherever the source program left it: embedded in the HTML, a temporary
+  file (Word, Outlook), or a web address (Google Docs).
+- A picture that cannot be fetched, such as one behind a Gmail login or
+  an email's `cid:` link, stays in the note as a link to its original
+  address. The status bar says how many were missed.
+- Downloads are limited to 5 seconds each and 15 seconds per paste.
+- Ctrl+V never converts; it pastes plain text, so pasted code is never
+  reformatted.
+
+Out of a note:
+
+- **Edit > Copy Note as Rich Text** (Ctrl+Shift+C) puts the whole open
+  note on the clipboard as formatted text, from either tab.
+- **Copy** (Ctrl+C) in the View tab copies the selection the same way.
+  The theme's colors and fonts are removed, as are code block copy links.
+- In both, stored images are embedded in the HTML as `data:` addresses,
+  because other programs cannot read Plainpad's files. The clipboard also
+  carries a plain text version.
+- Copy in the Edit tab is unchanged: it copies the markdown text.
+
+Tried by hand: nothing yet. The automated tests cover the conversions and
+the clipboard contents, not how each program (Google Docs, Gmail, Outlook,
+Word, Thunderbird, LibreOffice) accepts them.
 
 ### 4.2 View
 
 - The open note rendered from markdown to HTML with the current theme's
   `preview.css` (see 9).
+- Relative links are resolved against the notes folder, which is how
+  image links are found. Images are never drawn wider than the page; that
+  one rule is part of the page itself, not of a theme, so it also holds
+  in the frozen Default theme.
 - Re-rendered each time the tab is shown. The theme's `preview.css` is
   read again on every render, so hand edits to it show up the next time
   View is shown.
@@ -183,7 +256,9 @@ commands only.
 ```
 data/
   notes/        one .md file per note, UTF-8
+  images/       pictures linked from notes; see 4.3
   trash/        deleted notes
+    images/     images moved out by Clean Up Unused Images
   index.json    categories and which note is in which
 ```
 
@@ -225,10 +300,13 @@ are remembered with `QSettings`.
 | File | Rename | F2 |
 | File | Delete | Del (when the tree has focus) |
 | File | Save Now | Ctrl+S |
+| File | Clean Up Unused Images | |
 | File | Exit | Ctrl+Q |
 | Edit | Undo | Ctrl+Z |
 | Edit | Redo | Ctrl+Y |
 | Edit | Cut / Copy / Paste | Ctrl+X / Ctrl+C / Ctrl+V |
+| Edit | Copy Note as Rich Text | Ctrl+Shift+C |
+| Edit | Paste Formatted | Ctrl+Shift+V |
 | Edit | Select All | Ctrl+A |
 | Edit | Find | Ctrl+F (focuses the search box) |
 | View | Edit tab | Ctrl+1 |
@@ -241,7 +319,8 @@ Rename and Delete act on the selected tree row, whether it is a note or a
 category. Rename edits the row in place.
 
 The Edit menu items act on whichever text box has focus: the note editor
-or the search box.
+or the search box. Copy and Select All also work in the View tab. Copy
+Note as Rich Text and Paste Formatted always act on the open note.
 
 The tree's right-click menu is described in 3.4.
 
@@ -302,12 +381,17 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/__main__.py` | | `python -m plainpad` |
 | `plainpad.pyw` | | Double-click launcher; switches to `.venv`, shows startup errors in a message box |
 | `plainpad/config.py` | constants | Paths, delays, name format |
-| `plainpad/models.py` | `Category`, `CategoryListing`, `Theme`, `RenderedPage` | Plain data classes |
+| `plainpad/models.py` | `Category`, `CategoryListing`, `Theme`, `RenderedPage`, `ImportedText` | Plain data classes |
 | `plainpad/crud.py` | `NoteStore`, `timestamp_name()`, `NoteNameError` | Create, read, update, delete note files |
-| `plainpad/atomic_file.py` | `write_text_atomically()` | The one crash-safe write, used by notes, index, and CSS |
+| `plainpad/atomic_file.py` | `write_text_atomically()`, `write_bytes_atomically()` | The one crash-safe write, used by notes, index, and images |
+| `plainpad/images.py` | `ImageStore`, `ImageFormatError` | Keep image files by content hash; move unused ones to the trash |
+| `plainpad/image_links.py` | `image_link_for()`, `image_names_in()` | Build and find the links notes use for images |
+| `plainpad/image_sources.py` | `ImageSourceReader`, `ImageSourceError` | Image bytes from a `data:`, `file:`, or web address |
+| `plainpad/rich_import.py` | `RichTextImporter`, `sole_image_address()` | Clipboard HTML to markdown, storing its images |
+| `plainpad/rich_export.py` | `RichTextExporter` | A note or a copied selection as HTML with images embedded |
 | `plainpad/categories.py` | `CategoryIndex` | Load, change, and save `index.json` |
 | `plainpad/search.py` | `find_matching_notes()` | Keyword search |
-| `plainpad/library.py` | `Library` | Facade over notes, categories, search |
+| `plainpad/library.py` | `Library` | Facade over notes, categories, images, search |
 | `plainpad/render.py` | `MarkdownRenderer` | Markdown and CSS to an HTML page |
 | `plainpad/code_blocks.py` | `add_copy_links()` | Copy links on code blocks, and each block's text |
 | `plainpad/theme_store.py` | `ThemeStore` | Find themes and read their stylesheets |
@@ -317,6 +401,8 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/main_window.py` | `MainWindow` | Layout and signal wiring |
 | `plainpad/gui/tree_commands.py` | `TreeCommands` | Create, rename, move, delete notes and categories |
 | `plainpad/gui/location_commands.py` | `LocationCommands` | The tree's right-click menu: file browser and terminals |
+| `plainpad/gui/clipboard_commands.py` | `ClipboardCommands` | Paste images and formatted text; copy a note out as rich text |
+| `plainpad/gui/pasted_content.py` | `PastedContent` | Which images a paste or drop offers |
 | `plainpad/gui/session.py` | `SessionMemory` | Window size, splitter, last note via `QSettings` |
 | `plainpad/gui/actions.py` | `Actions`, `populate_menu_bar()`, `build_tree_menu()` | Menu items and key bindings |
 | `plainpad/gui/sidebar.py` | `Sidebar` | Search box above the tree |
@@ -330,16 +416,23 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
 | `tests/test_*.py` | | Unit tests for layer 1 and 2 |
 | `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes, right-click menu |
+| `tests/test_gui_images.py` | | pytest-qt tests of image paste and drop, Paste Formatted, rich copy from both tabs, cleanup |
+| `tests/conftest.py`, `tests/gui_support.py`, `tests/image_samples.py` | | The shared window fixture, GUI stand-ins, sample images and a network stand-in |
 
-Size: about 2,600 lines of Python (half of it docstrings and comments)
-across 31 source files. `main_window.py` and `note_tree.py` run a little
-over the 200 line guideline.
+Size: about 3,650 lines of Python (half of it docstrings and comments)
+across 37 source files. `main_window.py` and `note_tree.py` run over the
+200 line guideline.
+
+Dependencies beyond PyQt6: `Markdown` renders notes; `markdownify` (with
+`beautifulsoup4`) converts pasted HTML to markdown.
 
 ## 11. Out of scope
 
 - Multiple notes open at once, or multiple windows
 - Nested categories, tags, or a note in more than one category
-- Sync, encryption, export, printing, images pasted into notes
+- Sync, encryption, export, printing
+- Resizing, cropping, or converting images; images shown in the editor
+- Rich copy formats other than HTML (no RTF)
 - Syntax highlighting in the editor or in rendered code blocks
 - Find and replace inside a note
 - Undo history that survives a restart

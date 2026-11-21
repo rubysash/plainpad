@@ -20,6 +20,7 @@ VENV_PYTHONW = VENV_DIR / "Scripts" / "pythonw.exe"
 DATA_DIR = PROJECT_DIR / "data"
 NOTES_DIR_NAME = "notes"
 TRASH_DIR_NAME = "trash"
+IMAGES_DIR_NAME = "images"
 INDEX_FILE_NAME = "index.json"
 
 # --- Themes --------------------------------------------------------------
@@ -91,6 +92,59 @@ RESERVED_WINDOWS_NAMES = frozenset(
     | {f"LPT{number}" for number in range(1, 10)}
 )
 
+# --- Images --------------------------------------------------------------
+
+# An image file is named by this many hex digits of its SHA-256, so the
+# same picture pasted twice is stored once.
+IMAGE_HASH_LENGTH = 16
+
+# How each accepted format starts: (offset, bytes found there, extension
+# the file is stored with). The format is read from the content because a
+# file's own extension can be wrong.
+IMAGE_SIGNATURES = (
+    (0, b"\x89PNG\r\n\x1a\n", ".png"),
+    (0, b"\xff\xd8\xff", ".jpg"),
+    (0, b"GIF87a", ".gif"),
+    (0, b"GIF89a", ".gif"),
+    (8, b"WEBP", ".webp"),
+)
+IMAGE_MIME_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+# Extensions that make a dropped or pasted file count as an image at all.
+IMAGE_FILE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp"})
+# What a clipboard bitmap, which has no format of its own, is saved as.
+BITMAP_SAVE_FORMAT = "PNG"
+
+# Notes sit in data/notes/ and images in data/images/, so this relative
+# link also works in any other markdown viewer.
+IMAGE_LINK_PREFIX = "../images/"
+IMAGE_LINK_TEMPLATE = "![]({prefix}{name})"
+
+IMAGE_MAX_BYTES = 20 * 1024 * 1024
+# Seconds allowed for one download, and for all downloads of one paste.
+IMAGE_FETCH_TIMEOUT_S = 5.0
+IMAGE_FETCH_TOTAL_S = 15.0
+IMAGE_FETCH_SCHEMES = frozenset({"http", "https"})
+# Some servers refuse requests that name no client.
+IMAGE_FETCH_USER_AGENT = "Plainpad"
+
+# --- Rich copy and paste -------------------------------------------------
+
+# Present on every clipboard payload the app builds itself, so the View
+# tab can tell its own rich copy from a raw browser copy.
+RICH_COPY_MARKER_FORMAT = "application/x-plainpad-rich"
+
+MARKDOWN_HEADING_STYLE = "ATX"
+MARKDOWN_BULLETS = "-"
+# Tags a pasted document carries that hold no content for a note.
+PASTE_DROPPED_TAGS = (
+    "head", "style", "script", "meta", "link", "title", "xml",
+)
+
 # --- Categories ----------------------------------------------------------
 
 INDEX_VERSION = 1
@@ -131,6 +185,7 @@ PREVIEW_PAGE_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <style>
+img {{ max-width: 100%; height: auto; }}
 {css}
 </style>
 </head>

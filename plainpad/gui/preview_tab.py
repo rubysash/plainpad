@@ -1,5 +1,7 @@
 """The View tab: the open note rendered as a styled HTML page."""
 
+from pathlib import Path
+
 from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtGui import QColor, QDesktopServices
 from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
@@ -10,6 +12,7 @@ from plainpad.config import (
     COPY_LINK_SCHEME,
     EXTERNAL_LINK_SCHEMES,
     PREVIEW_BACKGROUND_COLOR,
+    RICH_COPY_MARKER_FORMAT,
 )
 from plainpad.render import MarkdownRenderer
 
@@ -54,17 +57,27 @@ class PreviewTab(QWebEngineView):
 
     # A code block's text was put on the clipboard.
     code_copied = pyqtSignal()
+    # The page's selection was copied: the raw HTML and the plain text
+    # the browser engine put on the clipboard.
+    selection_copied = pyqtSignal(str, str)
 
     def __init__(
-        self, renderer: MarkdownRenderer, parent: QWidget | None = None
+        self,
+        renderer: MarkdownRenderer,
+        notes_folder: Path,
+        parent: QWidget | None = None,
     ) -> None:
         """Install an ExternalLinkPage with JavaScript turned off.
 
         Notes may contain raw HTML, so scripts must never run. The page
         background is set to black so there is no white flash on load.
+        ``notes_folder`` is what relative links in a note, such as its
+        images, are resolved against.
         """
         super().__init__(parent)
         self._renderer = renderer
+        # The trailing slash makes it a folder, not a file, to the page.
+        self._base_url = QUrl.fromLocalFile(f"{notes_folder}/")
         self._code_blocks: list[str] = []
         page = ExternalLinkPage(self)
         page.settings().setAttribute(
@@ -73,17 +86,44 @@ class PreviewTab(QWebEngineView):
         page.setBackgroundColor(QColor(PREVIEW_BACKGROUND_COLOR))
         page.copy_requested.connect(self.copy_code_block)
         self.setPage(page)
+        QApplication.clipboard().dataChanged.connect(
+            self.on_clipboard_changed
+        )
 
     def show_markdown(self, markdown_text: str, css: str) -> None:
         """Render markdown with the given CSS and display the page."""
         rendered = self._renderer.render_page(markdown_text, css)
         self._code_blocks = rendered.code_blocks
-        self.setHtml(rendered.html)
+        self.setHtml(rendered.html, self._base_url)
 
     def show_nothing(self) -> None:
         """Display an empty page, for when no note is open."""
         self._code_blocks = []
         self.setHtml("")
+
+    def copy(self) -> None:
+        """Copy the selection, as Edit > Copy does for a text box."""
+        self.triggerPageAction(QWebEnginePage.WebAction.Copy)
+
+    def selectAll(self) -> None:
+        """Select the whole page, as Edit > Select All does."""
+        self.triggerPageAction(QWebEnginePage.WebAction.SelectAll)
+
+    def on_clipboard_changed(self) -> None:
+        """Report a copy made from this page so it can be made portable.
+
+        With JavaScript off, the selection's HTML can only be had from
+        the clipboard after the browser engine's own copy. That copy
+        carries the theme's colors and names images by local file, so
+        it is announced for replacement. A copy the app already built
+        carries the marker format and is left alone.
+        """
+        focus = QApplication.focusWidget()
+        if focus is None or not (focus is self or self.isAncestorOf(focus)):
+            return
+        mime = QApplication.clipboard().mimeData()
+        if mime.hasHtml() and not mime.hasFormat(RICH_COPY_MARKER_FORMAT):
+            self.selection_copied.emit(mime.html(), mime.text())
 
     def copy_code_block(self, index: int) -> None:
         """Put the text of the page's Nth code block on the clipboard."""

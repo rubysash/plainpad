@@ -35,6 +35,18 @@ class RenderedPage:
     code_blocks: list[str]
 
 
+@dataclass(frozen=True)
+class ImportedText:
+    """Formatted clipboard content turned into markdown for a note.
+
+    ``images_missed`` counts pictures that could not be copied into the
+    image folder; those still point at their original address.
+    """
+
+    markdown: str
+    images_missed: int
+
+
 @dataclass
 class CategoryListing:
     """One category together with the names of the notes inside it.

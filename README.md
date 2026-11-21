@@ -15,6 +15,13 @@ seconds after you stop typing.
   or your Linux file manager), or a terminal there. On Windows you can
   pick Windows Terminal, Command Prompt, or PowerShell
 - A copy button on every code block in the View tab
+- Images: paste a screenshot, paste or drop image files, and the app keeps
+  its own copy in `data/images/`. Animated GIFs stay animated
+- Paste Formatted (Ctrl+Shift+V) turns text copied from a document or an
+  email into markdown and brings its pictures along
+- Copy Note as Rich Text (Ctrl+Shift+C), or Ctrl+C in the View tab, copies
+  formatted text with the images embedded, for pasting into a document or
+  an email
 - Arrow keys in the sidebar browse notes after a short pause
 - Autosave, per-note undo and redo
 - Themes under Settings > Theme: CRT green, Dark (Darkly), Light, and a

@@ -6,7 +6,14 @@ from pathlib import Path
 import pytest
 
 from plainpad.config import UNCATEGORIZED_ID, UNCATEGORIZED_NAME
-from plainpad.library import Library, NoteNameError
+from plainpad.image_sources import ImageSourceReader
+from plainpad.library import (
+    ImageFormatError,
+    ImageSourceError,
+    Library,
+    NoteNameError,
+)
+from tests.image_samples import GIF, JPEG, PNG, PNG_DATA_ADDRESS, FakeWeb
 
 
 @pytest.fixture
@@ -124,3 +131,58 @@ def test_index_entry_for_missing_file_is_dropped(tmp_path: Path) -> None:
 def test_search_goes_through_library(library: Library) -> None:
     library.save_note("Chili", "Beans and cumin")
     assert library.search("CUMIN") == {"Chili"}
+
+
+def image_library(tmp_path: Path, pages: dict[str, bytes]) -> Library:
+    """A Library whose web serves only ``pages``."""
+    return Library(tmp_path / "data", ImageSourceReader(FakeWeb(pages)))
+
+
+def test_add_image_returns_link_to_stored_file(library: Library) -> None:
+    link = library.add_image(GIF)
+    name = link.removeprefix("![](../images/").removesuffix(")")
+    assert (library.images_folder() / name).read_bytes() == GIF
+    # The link is relative to the notes folder.
+    assert (library.notes_folder() / "../images" / name).is_file()
+
+
+def test_add_image_refuses_other_files(library: Library) -> None:
+    with pytest.raises(ImageFormatError):
+        library.add_image(b"not a picture")
+
+
+def test_add_image_from_address(tmp_path: Path) -> None:
+    address = "https://example.com/a.gif"
+    library = image_library(tmp_path, {address: GIF})
+    assert library.add_image_from(address) == library.add_image(GIF)
+    with pytest.raises(ImageSourceError):
+        library.add_image_from("https://example.com/missing.gif")
+
+
+def test_clean_up_keeps_images_linked_from_notes_and_trash(
+    library: Library, tmp_path: Path
+) -> None:
+    in_note, in_trashed, unused = (
+        library.add_image(data) for data in (PNG, GIF, JPEG)
+    )
+    keeper = library.create_note(UNCATEGORIZED_ID)
+    library.save_note(keeper, f"text {in_note}")
+    library.save_note("old", in_trashed)
+    library.delete_note("old")
+    assert library.clean_up_unused_images() == 1
+    left = sorted(path.name for path in library.images_folder().iterdir())
+    assert len(left) == 2
+    assert all(name in in_note + in_trashed for name in left)
+    trashed = list((tmp_path / "data" / "trash" / "images").iterdir())
+    assert [path.name in unused for path in trashed] == [True]
+    assert library.clean_up_unused_images() == 0
+
+
+def test_rich_text_round_trip(tmp_path: Path) -> None:
+    library = image_library(tmp_path, {})
+    link = library.add_image(PNG)
+    html = library.rich_html_of_note(f"# Title\n\nSome **bold**.\n\n{link}")
+    assert PNG_DATA_ADDRESS in html
+    imported = library.import_rich_text(html)
+    assert imported.markdown == f"# Title\n\nSome **bold**.\n\n{link}"
+    assert imported.images_missed == 0

@@ -5,12 +5,13 @@ document, instead of replacing the text, is what keeps every note's undo
 history intact when the user moves between notes.
 """
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QMimeData, QObject, pyqtSignal
 from PyQt6.QtGui import QTextDocument
 from PyQt6.QtWidgets import QPlainTextDocumentLayout, QPlainTextEdit, QWidget
 
 from plainpad.autosave import AutosaveTimer
 from plainpad.config import AUTOSAVE_DELAY_MS
+from plainpad.gui.pasted_content import PastedContent
 
 NO_NOTE_HINT = "Select a note, or press Ctrl+N to create one."
 
@@ -20,6 +21,9 @@ class EditorTab(QPlainTextEdit):
 
     # Time to write the note to disk: note name, full text.
     save_due = pyqtSignal(str, str)
+    # A paste or drop holds images to store: a PastedContent, which is
+    # only valid while the signal is being delivered.
+    images_offered = pyqtSignal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         """Create a disabled, word-wrapped editor and its AutosaveTimer."""
@@ -83,6 +87,29 @@ class EditorTab(QPlainTextEdit):
     def current_text(self) -> str:
         """Return the open note's text as it is in the editor now."""
         return self.toPlainText()
+
+    def canInsertFromMimeData(self, source: QMimeData) -> bool:
+        """Accept pastes and drops of images as well as of text."""
+        return PastedContent(source).offers_images() or (
+            super().canInsertFromMimeData(source)
+        )
+
+    def insertFromMimeData(self, source: QMimeData) -> None:
+        """Announce pasted or dropped images; insert anything else.
+
+        Qt calls this for both a paste and a drop, with the cursor
+        already at the place the content goes. Formatted text is still
+        inserted as plain text.
+        """
+        content = PastedContent(source)
+        if content.offers_images():
+            self.images_offered.emit(content)
+        else:
+            super().insertFromMimeData(source)
+
+    def insert_markdown(self, text: str) -> None:
+        """Insert text at the cursor as one undoable edit."""
+        self.textCursor().insertText(text)
 
     def flush(self) -> None:
         """Emit ``save_due`` now for unsaved edits and failed saves.

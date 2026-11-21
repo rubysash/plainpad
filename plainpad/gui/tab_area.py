@@ -1,6 +1,7 @@
 """The right side of the window: the Edit and View tabs."""
 
 from collections.abc import Callable
+from pathlib import Path
 
 from PyQt6.QtWidgets import QTabWidget, QWidget
 
@@ -20,17 +21,19 @@ class TabArea(QTabWidget):
         self,
         renderer: MarkdownRenderer,
         view_css: Callable[[], str],
+        notes_folder: Path,
         parent: QWidget | None = None,
     ) -> None:
         """Create the Edit and View tabs.
 
         ``view_css`` returns the CSS for the View tab. It is asked on
         every render, so hand edits to a theme's CSS show up at once.
+        ``notes_folder`` lets the View tab find the images notes link.
         """
         super().__init__(parent)
         self._view_css = view_css
         self._editor = EditorTab(self)
-        self._preview = PreviewTab(renderer, self)
+        self._preview = PreviewTab(renderer, notes_folder, self)
         self._edit_index = self.addTab(self._editor, "Edit")
         self._view_index = self.addTab(self._preview, "View")
         self.currentChanged.connect(self.on_tab_changed)

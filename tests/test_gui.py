@@ -1,89 +1,30 @@
 """GUI tests for MainWindow and its widgets, using pytest-qt.
 
-Each test gets its own data folder and its own QSettings file under
-tmp_path, so the user's notes and window state are never touched. Dialogs
-are replaced with stubs that answer Yes, and autosave runs fast.
+The ``window`` fixture in conftest.py gives each test its own data folder
+and settings, so the user's notes and window state are never touched.
 """
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from PyQt6 import sip
 from PyQt6.QtCore import QPoint, QSettings, Qt, QUrl
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
 from plainpad.config import THEMES_DIR
-from plainpad.desktop_launch import DesktopLauncher
-from plainpad.gui import editor_tab, main_window, tree_commands
+from plainpad.gui import main_window
 from plainpad.gui.main_window import MainWindow
 from plainpad.library import Library
 from plainpad.theme_store import ThemeStore
-
-FAST_AUTOSAVE_MS = 50
-
-
-def answer_yes(*_args: object) -> bool:
-    """Stand-in for dialogs.confirm that always answers Yes."""
-    return True
-
-
-class RecordingLauncher(DesktopLauncher):
-    """A Windows DesktopLauncher that records commands instead of running
-    them, so tests open no windows."""
-
-    def __init__(self) -> None:
-        """Pretend Windows Terminal is installed."""
-        super().__init__("win32", lambda program: program)
-        self.started: list[tuple[list[str], Path]] = []
-
-    def start(self, command: list[str], folder: Path) -> None:
-        """Record the command and the folder it would run from."""
-        self.started.append((command, folder))
-
-
-@pytest.fixture
-def window(
-    qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[MainWindow]:
-    """A shown MainWindow over an empty data folder.
-
-    The window is destroyed at once after the test rather than left to
-    pytest-qt, because WebEngine crashes at exit if a rendered page
-    outlives the application.
-    """
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat,
-        QSettings.Scope.UserScope,
-        str(tmp_path / "settings"),
-    )
-    monkeypatch.setattr(editor_tab, "AUTOSAVE_DELAY_MS", FAST_AUTOSAVE_MS)
-    monkeypatch.setattr(main_window, "confirm", answer_yes)
-    monkeypatch.setattr(tree_commands, "confirm", answer_yes)
-    library = Library(tmp_path / "data")
-    win = MainWindow(library, ThemeStore(THEMES_DIR), RecordingLauncher())
-    win.show()
-    yield win
-    win.close()
-    sip.delete(win)
+from tests.gui_support import answer_yes, new_note, status
 
 
 @pytest.fixture
 def library(window: MainWindow) -> Library:
     """The Library behind the window."""
     return window._library
-
-
-def new_note(window: MainWindow, qtbot: QtBot, text: str = "") -> str:
-    """Create a note through the window, type ``text``, return its name."""
-    window._commands.create_note()
-    editor = window._tabs.editor
-    if text:
-        qtbot.keyClicks(editor, text)
-    return editor.current_note_name()
 
 
 def make_save_flaky(
@@ -100,11 +41,6 @@ def make_save_flaky(
 
     monkeypatch.setattr(library, "save_note", flaky_save)
     return switch
-
-
-def status(window: MainWindow) -> str:
-    """Return the status bar text."""
-    return window.statusBar().currentMessage()
 
 
 def test_editor_is_disabled_until_a_note_is_open(

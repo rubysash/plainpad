@@ -4,7 +4,8 @@ MainWindow owns the sidebar, the tab area, the menu actions, and the
 status bar. Its slots translate widget signals into Library calls and then
 tell the widgets what changed. Creating, renaming, moving, and deleting
 notes and categories is delegated to TreeCommands, and the tree's
-right-click menu to LocationCommands.
+right-click menu to LocationCommands. Pasting images and formatted text,
+and copying a note out as rich text, is delegated to ClipboardCommands.
 """
 
 from collections.abc import Callable
@@ -21,6 +22,7 @@ from plainpad.config import (
 )
 from plainpad.desktop_launch import DesktopLauncher
 from plainpad.gui.actions import Actions, build_tree_menu, populate_menu_bar
+from plainpad.gui.clipboard_commands import ClipboardCommands
 from plainpad.gui.dialogs import confirm, show_about
 from plainpad.gui.location_commands import LocationCommands
 from plainpad.gui.session import SessionMemory
@@ -55,6 +57,7 @@ class MainWindow(QMainWindow):
         populate_menu_bar(self.menuBar(), self._actions)
         tree = self._sidebar.tree
         self._commands = TreeCommands(library, tree, self._tabs.editor, self)
+        self._clipboard = ClipboardCommands(library, self._tabs.editor, self)
         self._locations = LocationCommands(
             library,
             tree,
@@ -75,6 +78,7 @@ class MainWindow(QMainWindow):
         self._tabs = TabArea(
             MarkdownRenderer(),
             lambda: self._themes.preview_css(self._theme),
+            self._library.notes_folder(),
             self,
         )
         self._splitter = QSplitter(self)
@@ -94,6 +98,7 @@ class MainWindow(QMainWindow):
         # Del only applies while the tree has focus; see Actions.
         self._sidebar.tree.addAction(actions.delete)
         actions.save_now.triggered.connect(tabs.flush_pending_saves)
+        actions.clean_up_images.triggered.connect(self.clean_up_images)
         actions.exit.triggered.connect(self.close)
         edit_methods = {
             actions.undo: "undo",
@@ -107,6 +112,12 @@ class MainWindow(QMainWindow):
             action.triggered.connect(
                 lambda _checked=False, name=method: self.edit_focused(name)
             )
+        actions.copy_note_rich.triggered.connect(
+            self._clipboard.copy_note_as_rich_text
+        )
+        actions.paste_formatted.triggered.connect(
+            self._clipboard.paste_formatted
+        )
         actions.find.triggered.connect(self._sidebar.focus_search)
         actions.show_edit_tab.triggered.connect(tabs.show_edit_tab)
         actions.show_view_tab.triggered.connect(tabs.show_view_tab)
@@ -142,9 +153,16 @@ class MainWindow(QMainWindow):
         tree.customContextMenuRequested.connect(self._locations.show_menu)
         self._sidebar.search_requested.connect(self.run_search)
         self._tabs.editor.save_due.connect(self.save_note)
+        self._tabs.editor.images_offered.connect(
+            self._clipboard.insert_images
+        )
         self._tabs.preview.code_copied.connect(
             lambda: self.statusBar().showMessage("Copied code block")
         )
+        self._tabs.preview.selection_copied.connect(
+            self._clipboard.replace_selection_copy
+        )
+        self._clipboard.status_message.connect(self.statusBar().showMessage)
         self._commands.tree_changed.connect(self.refresh_tree)
         self._commands.note_created.connect(self.open_new_note)
         self._commands.status_message.connect(self.statusBar().showMessage)
@@ -229,10 +247,29 @@ class MainWindow(QMainWindow):
             self._sidebar.tree.clear_filter()
 
     def edit_focused(self, method: str) -> None:
-        """Run an Edit menu command on whichever text box has focus."""
-        command = getattr(QApplication.focusWidget(), method, None)
+        """Run an Edit menu command on whichever text box has focus.
+
+        The View tab counts as one for Copy and Select All. Focus there
+        sits on a widget inside the web view, so the view stands in.
+        """
+        focus = QApplication.focusWidget()
+        if focus is not None and self._tabs.preview.isAncestorOf(focus):
+            focus = self._tabs.preview
+        command = getattr(focus, method, None)
         if callable(command):
             command()
+
+    def clean_up_images(self) -> None:
+        """Move images no note links to into the trash and say how many."""
+        self._tabs.flush_pending_saves()
+        try:
+            moved = self._library.clean_up_unused_images()
+        except OSError as error:
+            self.statusBar().showMessage(f"Clean up failed: {error}")
+            return
+        self.statusBar().showMessage(
+            f"Moved {moved} unused image(s) to the trash"
+        )
 
     # --- Housekeeping ----------------------------------------------------
 

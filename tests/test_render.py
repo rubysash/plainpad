@@ -39,7 +39,9 @@ def test_render_page_embeds_css_and_declares_utf8(
 ) -> None:
     page = renderer.render_page("hello", "body { color: red; }").html
     assert '<meta charset="utf-8">' in page
-    assert "<style>\nbody { color: red; }\n</style>" in page
+    assert "\nbody { color: red; }\n</style>" in page
+    # Images are kept within the page whatever the theme says.
+    assert "img { max-width: 100%; height: auto; }" in page
     assert "<p>hello</p>" in page
     assert "<script" not in page
 

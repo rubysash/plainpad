@@ -16,8 +16,10 @@ from plainpad.models import Theme
 class Actions(QObject):
     """All QActions as named attributes.
 
-    File: new_note, new_category, rename, delete, save_now, exit
-    Edit: undo, redo, cut, copy, paste, select_all, find
+    File: new_note, new_category, rename, delete, save_now,
+          clean_up_images, exit
+    Edit: undo, redo, cut, copy, copy_note_rich, paste, paste_formatted,
+          select_all, find
     View: show_edit_tab, show_view_tab, toggle_edit_and_view
     Settings: themes, one checkable action per theme name
     Help: about
@@ -52,13 +54,18 @@ class Actions(QObject):
         # fires when a widget this action is added to (the tree) has focus.
         self.delete.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
         self.save_now = self.make("&Save Now", "Ctrl+S")
+        self.clean_up_images = self.make("Clean &Up Unused Images", "")
         self.exit = self.make("E&xit", "Ctrl+Q")
 
         self.undo = self.make("&Undo", "Ctrl+Z")
         self.redo = self.make("&Redo", "Ctrl+Y")
         self.cut = self.make("Cu&t", "Ctrl+X")
         self.copy = self.make("&Copy", "Ctrl+C")
+        self.copy_note_rich = self.make(
+            "Copy &Note as Rich Text", "Ctrl+Shift+C"
+        )
         self.paste = self.make("&Paste", "Ctrl+V")
+        self.paste_formatted = self.make("Paste For&matted", "Ctrl+Shift+V")
         self.select_all = self.make("Select &All", "Ctrl+A")
         self.find = self.make("&Find", "Ctrl+F")
 
@@ -92,13 +99,22 @@ def populate_menu_bar(menu_bar: QMenuBar, actions: Actions) -> None:
     file_menu.addSeparator()
     file_menu.addAction(actions.save_now)
     file_menu.addSeparator()
+    file_menu.addAction(actions.clean_up_images)
+    file_menu.addSeparator()
     file_menu.addAction(actions.exit)
 
     edit_menu = menu_bar.addMenu("&Edit")
     edit_menu.addActions([actions.undo, actions.redo])
     edit_menu.addSeparator()
     edit_menu.addActions(
-        [actions.cut, actions.copy, actions.paste, actions.select_all]
+        [
+            actions.cut,
+            actions.copy,
+            actions.copy_note_rich,
+            actions.paste,
+            actions.paste_formatted,
+            actions.select_all,
+        ]
     )
     edit_menu.addSeparator()
     edit_menu.addAction(actions.find)
