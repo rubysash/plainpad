@@ -26,6 +26,7 @@ from plainpad.gui.clipboard_commands import ClipboardCommands
 from plainpad.gui.dialogs import confirm, show_about
 from plainpad.gui.location_commands import LocationCommands
 from plainpad.gui.session import SessionMemory
+from plainpad.gui.shortcuts_dialog import ShortcutsDialog
 from plainpad.gui.sidebar import Sidebar
 from plainpad.gui.tab_area import TabArea
 from plainpad.gui.tree_commands import TreeCommands
@@ -123,6 +124,9 @@ class MainWindow(QMainWindow):
         actions.show_view_tab.triggered.connect(tabs.show_view_tab)
         actions.toggle_edit_and_view.triggered.connect(
             tabs.toggle_edit_and_view
+        )
+        actions.shortcuts.triggered.connect(
+            lambda: ShortcutsDialog(self, self.menuBar()).exec()
         )
         actions.about.triggered.connect(lambda: show_about(self))
         actions.show_in_file_browser.triggered.connect(

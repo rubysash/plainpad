@@ -52,6 +52,8 @@ a message box.
 
 ## Keys
 
+The main ones are below. Help > Keyboard Shortcuts (F1) lists them all.
+
 | Key | Action |
 | --- | --- |
 | Ctrl+N | New note, named with the current date and time |
@@ -64,6 +66,7 @@ a message box.
 | Ctrl+S | Save now |
 | Ctrl+Z / Ctrl+Y | Undo / redo |
 | Ctrl+Q | Exit |
+| F1 | Show every keyboard shortcut |
 
 ## Where your notes live
 

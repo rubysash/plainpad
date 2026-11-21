@@ -313,6 +313,7 @@ are remembered with `QSettings`.
 | View | View tab | Ctrl+2 |
 | View | Toggle Edit / View | Ctrl+E |
 | Settings | Theme > (one item per theme, current one checked) | |
+| Help | Keyboard Shortcuts | F1 |
 | Help | About | |
 
 Rename and Delete act on the selected tree row, whether it is a note or a
@@ -323,6 +324,14 @@ or the search box. Copy and Select All also work in the View tab. Copy
 Note as Rich Text and Paste Formatted always act on the open note.
 
 The tree's right-click menu is described in 3.4.
+
+**Help > Keyboard Shortcuts** (F1) opens a read-only table with three
+columns: Where, Command, Keys. It lists every menu item that has a key,
+read from the menus when the window opens, so it always matches them.
+Below those come the keys a widget handles itself, which no menu item
+carries: Enter, Del, and the browse keys in the tree (3.1), and Esc in
+the search box (3.3). Those rows are `WIDGET_SHORTCUTS` in `config.py`.
+Close or Esc dismisses it.
 
 ## 9. Themes
 
@@ -413,14 +422,16 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/editor_tab.py` | `EditorTab` | Markdown editor, per-note undo |
 | `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view |
 | `plainpad/gui/dialogs.py` | `ask_for_name()`, `confirm()`, `show_about()` | The modal prompts |
+| `plainpad/gui/shortcuts_dialog.py` | `ShortcutsDialog`, `menu_shortcuts()` | Help > Keyboard Shortcuts |
 | `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
 | `tests/test_*.py` | | Unit tests for layer 1 and 2 |
 | `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes, right-click menu |
 | `tests/test_gui_images.py` | | pytest-qt tests of image paste and drop, Paste Formatted, rich copy from both tabs, cleanup |
+| `tests/test_gui_shortcuts.py` | | pytest-qt tests of the Keyboard Shortcuts menu item and table |
 | `tests/conftest.py`, `tests/gui_support.py`, `tests/image_samples.py` | | The shared window fixture, GUI stand-ins, sample images and a network stand-in |
 
-Size: about 3,650 lines of Python (half of it docstrings and comments)
-across 37 source files. `main_window.py` and `note_tree.py` run over the
+Size: about 3,750 lines of Python (half of it docstrings and comments)
+across 38 source files. `main_window.py` and `note_tree.py` run over the
 200 line guideline.
 
 Dependencies beyond PyQt6: `Markdown` renders notes; `markdownify` (with

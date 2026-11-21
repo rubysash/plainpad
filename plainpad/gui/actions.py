@@ -22,7 +22,7 @@ class Actions(QObject):
           select_all, find
     View: show_edit_tab, show_view_tab, toggle_edit_and_view
     Settings: themes, one checkable action per theme name
-    Help: about
+    Help: shortcuts, about
     Tree right-click menu: show_in_file_browser, open_terminal_here,
           open_command_prompt_here, open_powershell_here
 
@@ -73,6 +73,7 @@ class Actions(QObject):
         self.show_view_tab = self.make("&View Tab", "Ctrl+2")
         self.toggle_edit_and_view = self.make("&Toggle Edit / View", "Ctrl+E")
 
+        self.shortcuts = self.make("&Keyboard Shortcuts", "F1")
         self.about = self.make("&About Plainpad", "")
 
         self.show_in_file_browser = self.make(file_browser_label, "")
@@ -129,6 +130,8 @@ def populate_menu_bar(menu_bar: QMenuBar, actions: Actions) -> None:
     theme_menu.addActions(list(actions.themes.values()))
 
     help_menu = menu_bar.addMenu("&Help")
+    help_menu.addAction(actions.shortcuts)
+    help_menu.addSeparator()
     help_menu.addAction(actions.about)
 
 

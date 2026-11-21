@@ -206,3 +206,17 @@ SETTINGS_GEOMETRY_KEY = "window/geometry"
 SETTINGS_SPLITTER_KEY = "window/splitter"
 SETTINGS_LAST_NOTE_KEY = "session/last_note"
 SETTINGS_THEME_KEY = "appearance/theme"
+
+# --- Keyboard shortcuts dialog -------------------------------------------
+
+SHORTCUTS_DIALOG_TITLE = "Keyboard Shortcuts"
+SHORTCUTS_COLUMNS = ("Where", "Command", "Keys")
+SHORTCUTS_DIALOG_SIZE = (720, 640)
+# Keys handled by a widget rather than a menu item, so the menu bar cannot
+# list them. Rows are (where, command, keys).
+WIDGET_SHORTCUTS = (
+    ("Tree", "Open the selected note", "Enter"),
+    ("Tree", "Delete the selected row", "Del"),
+    ("Tree", "Browse notes", "Up, Down, PgUp, PgDn, Home, End"),
+    ("Search box", "Clear the search", "Esc"),
+)
