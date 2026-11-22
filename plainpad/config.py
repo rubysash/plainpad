@@ -179,6 +179,7 @@ MARKDOWN_EXTENSIONS = (
     "pymdownx.tasklist",
     "pymdownx.tilde",
     "pymdownx.magiclink",
+    "codehilite",
 )
 # A list item nested 2 spaces in is a sublist, as on GitHub.
 NESTED_LIST_INDENT = 2
@@ -186,6 +187,9 @@ MARKDOWN_EXTENSION_CONFIGS = {
     "mdx_truly_sane_lists": {"nested_indent": NESTED_LIST_INDENT},
     # ~~text~~ is struck through; ~text~ stays plain, not subscript.
     "pymdownx.tilde": {"subscript": False},
+    # Only a fence that names its language is colored. Pygments' guess
+    # is often wrong, and a wrongly colored block reads worse than none.
+    "codehilite": {"guess_lang": False, "css_class": "highlight"},
 }
 # Python-Markdown's block processor that makes text indented 4 spaces a
 # code block. It is removed: with 2 space nesting, a third list level

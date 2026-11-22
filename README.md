@@ -15,6 +15,8 @@ seconds after you stop typing.
   or your Linux file manager), or a terminal there. On Windows you can
   pick Windows Terminal, Command Prompt, or PowerShell
 - A copy button on every code block in the View tab
+- Syntax highlighting for code fences that name a language, like
+  ```` ```python ````
 - Markdown extras: task list checkboxes (`- [ ]`, `- [x]`),
   `~~strikethrough~~`, bare links, footnotes, and lists that nest at 2
   spaces. Only fenced blocks are code; indenting never is

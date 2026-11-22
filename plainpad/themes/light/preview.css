@@ -143,3 +143,70 @@ del {
     font-size: 0.9em;
     color: #57606a;
 }
+
+/*
+ * Syntax highlighting, for fences that name a language. Pygments gives
+ * each token a short class; its first letter is the family: c comment,
+ * k keyword, s string, m number, n name, o operator, g diff.
+ */
+.highlight code [class^="c"] {
+    color: #57606a;
+    font-style: italic;
+}
+
+.highlight code [class^="k"],
+.highlight code .ow {
+    color: #cf222e;
+    font-weight: normal;
+}
+
+.highlight code [class^="s"],
+.highlight code .dl {
+    color: #0a3069;
+}
+
+.highlight code [class^="m"],
+.highlight code .il,
+.highlight code .kc {
+    color: #0550ae;
+}
+
+.highlight code .nf,
+.highlight code .fm,
+.highlight code .nd {
+    color: #8250df;
+}
+
+.highlight code .nc,
+.highlight code .nn,
+.highlight code .ne {
+    color: #953800;
+}
+
+.highlight code .nb,
+.highlight code .bp {
+    color: #953800;
+}
+
+.highlight code .nt {
+    color: #116329;
+}
+
+.highlight code .na,
+.highlight code .nv {
+    color: #0550ae;
+}
+
+.highlight code .gi {
+    color: #116329;
+}
+
+.highlight code .gd {
+    color: #82071e;
+}
+
+.highlight code .gh,
+.highlight code .gu {
+    color: #0550ae;
+    font-weight: bold;
+}

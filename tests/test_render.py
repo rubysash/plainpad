@@ -19,8 +19,23 @@ def test_fenced_code_becomes_pre_and_code(
     renderer: MarkdownRenderer,
 ) -> None:
     html = renderer.body_html("```\nprint('hi')\n```")
-    assert "<pre><code>" in html
+    assert "<pre>" in html and "<code>" in html
     assert "print(&#x27;hi&#x27;)" in html or "print('hi')" in html
+
+
+def test_fence_naming_a_language_is_highlighted(
+    renderer: MarkdownRenderer,
+) -> None:
+    html = renderer.body_html("```python\nimport os\n```")
+    assert '<div class="highlight">' in html
+    assert '<span class="kn">import</span>' in html
+
+
+def test_fence_without_a_language_is_not_colored(
+    renderer: MarkdownRenderer,
+) -> None:
+    html = renderer.body_html("```\nimport os\n```")
+    assert '<span class="' not in html
 
 
 def test_pipe_table_becomes_table(renderer: MarkdownRenderer) -> None:

@@ -228,6 +228,14 @@ clipboard contents, not how each program accepts them.
   rules, line breaks, raw HTML):
   - Fenced code blocks (```` ``` ````). Text indented 4 spaces is **not**
     code; it stays ordinary text. Only fences make code.
+  - Syntax highlighting for a fence that names its language, such as
+    ```` ```python ```` or ```` ```bash ````, by Pygments when the note is
+    rendered, so the page still runs no script. A fence with no language,
+    or one Pygments does not know, stays plain; the language is never
+    guessed. The colors come from the theme's `preview.css`, keyed on
+    Pygments' short token classes (`c` comment, `k` keyword, `s` string,
+    and so on). The frozen Default theme has none, so its code is plain.
+    The copy link copies the code without the coloring.
   - Tables, with column alignment.
   - Task lists: `- [ ]` and `- [x]` show a checkbox drawn in the
     theme's colors. It cannot be clicked, since the page runs no
@@ -467,8 +475,9 @@ across 39 source files. `main_window.py` and `note_tree.py` run over the
 200 line guideline.
 
 Dependencies beyond PyQt6: `Markdown` renders notes, with
-`pymdown-extensions` for task lists, strikethrough, and bare links, and
-`mdx_truly_sane_lists` for 2 space nesting; `markdownify` (with
+`pymdown-extensions` for task lists, strikethrough, and bare links,
+`mdx_truly_sane_lists` for 2 space nesting, and `Pygments` for syntax
+highlighting; `markdownify` (with
 `beautifulsoup4`) converts pasted HTML to markdown.
 
 ## 11. Out of scope
