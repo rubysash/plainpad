@@ -239,8 +239,22 @@ QPushButton:disabled {
     border-color: #0d460d;
 }
 
-/* --- Labels ----------------------------------------------------------- */
+/* --- Keyboard shortcuts table ----------------------------------------- */
 
-QLabel#hint {
-    color: #1a8c1a;
+QTableWidget {
+    border: 1px solid #1a8c1a;
+    gridline-color: #0d460d;
+    outline: none;
+}
+
+QTableWidget::item {
+    padding: 2px 6px;
+}
+
+QHeaderView::section {
+    background-color: #000000;
+    color: #33ff33;
+    border: none;
+    border-bottom: 1px solid #1a8c1a;
+    padding: 4px 6px;
 }

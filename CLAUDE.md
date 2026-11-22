@@ -21,10 +21,11 @@ flake8 plainpad tests                 # PEP 8 check, must be clean
 Three layers. A lower layer never imports a higher one.
 
 1. Storage and logic: `crud.py`, `categories.py`, `search.py`, `render.py`,
-   `style_store.py`, `atomic_file.py`, `models.py`, `config.py`. No Qt
-   imports here.
-2. Facade: `library.py`. The GUI reads and writes notes and categories only
-   through `Library`.
+   `images.py`, `image_links.py`, `image_sources.py`, `rich_import.py`,
+   `rich_export.py`, `theme_store.py`, `desktop_launch.py`,
+   `atomic_file.py`, `models.py`, `config.py`. No Qt imports here.
+2. Facade: `library.py`. The GUI reads and writes notes, categories, and
+   images only through `Library`.
 3. GUI: `plainpad/gui/`, plus `autosave.py` and `theme.py`.
 
 Widgets do not call each other. A widget emits a signal, and `MainWindow`
@@ -51,8 +52,13 @@ its id in `index.json`, never its display name.
 - Styling goes in the theme folders, `plainpad/themes/<name>/app.qss` and
   `preview.css`. No inline `setStyleSheet` strings in widgets. Never edit
   `themes/default/`; it is the frozen fallback and a test checks it.
-- Every file write goes through `atomic_file.write_text_atomically`.
-- The app never erases user notes. Delete moves to `data/trash/`.
+- Every file write goes through `atomic_file.write_text_atomically` or
+  `write_bytes_atomically`.
+- The app never erases user notes or images. Delete moves to `data/trash/`.
+- Image files are stored byte for byte. Never re-encode one; that is what
+  keeps animated GIFs animated.
+- Tests never touch the network. Pass `Library` an `ImageSourceReader`
+  built on `tests.image_samples.FakeWeb`.
 - Layers 1 and 2 get unit tests using pytest's `tmp_path`. Tests never touch
   the real `data/` folder.
 
@@ -68,3 +74,8 @@ its id in `index.json`, never its display name.
   `casefold()`.
 - A `QWebEnginePage` that outlives the `QApplication` crashes the process
   at exit. Delete the window before the application goes away.
+- The View tab runs no JavaScript, so a selection's HTML is only available
+  from the clipboard after the page's own copy. `PreviewTab` watches the
+  clipboard for that; anything the app puts there itself must carry
+  `config.RICH_COPY_MARKER_FORMAT` or it will be rewritten again.
+- `QPlainTextEdit.insertFromMimeData` handles both paste and drop.

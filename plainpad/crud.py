@@ -53,6 +53,11 @@ class NoteStore:
         notes_dir.mkdir(parents=True, exist_ok=True)
         trash_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def folder(self) -> Path:
+        """The folder that holds the note files."""
+        return self._notes_dir
+
     def names(self) -> list[str]:
         """Return every note name, sorted without regard to case."""
         found = (
@@ -70,6 +75,19 @@ class NoteStore:
     def read(self, name: str) -> str:
         """Return the full text of a note."""
         return self.path_of(name).read_text(encoding=TEXT_ENCODING)
+
+    def texts_including_trash(self) -> list[str]:
+        """Return the text of every note, trashed ones included.
+
+        Undecodable bytes are replaced instead of raising, because this
+        is used to find image links, which are plain ASCII.
+        """
+        return [
+            path.read_text(encoding=TEXT_ENCODING, errors="replace")
+            for folder in (self._notes_dir, self._trash_dir)
+            for path in folder.glob(f"*{NOTE_EXTENSION}")
+            if path.is_file()
+        ]
 
     def write(self, name: str, text: str) -> None:
         """Replace a note's text atomically.

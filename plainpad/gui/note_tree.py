@@ -5,7 +5,7 @@ stores what it is (category or note) and its identity in item data, so the
 displayed text is never parsed; see tree_items.py.
 """
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QPoint, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QDropEvent, QKeyEvent
 from PyQt6.QtWidgets import QAbstractItemView, QTreeWidget, QTreeWidgetItem
 from PyQt6.QtWidgets import QWidget
@@ -73,6 +73,8 @@ class NoteTree(QTreeWidget):
         self.setExpandsOnDoubleClick(False)
         # Renaming starts only from the F2 action, never from a click.
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        # MainWindow supplies the right-click menu.
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         root = self.invisibleRootItem()
         root.setFlags(root.flags() & ~Flag.ItemIsDropEnabled)
         self._filter = TreeFilter(self)
@@ -126,6 +128,14 @@ class NoteTree(QTreeWidget):
         """Return the selected note's name, or None if no note is
         selected."""
         item = self.selected_item()
+        if item is None or identity_of(item)[0] != KIND_NOTE:
+            return None
+        return identity_of(item)[1]
+
+    def note_name_at(self, position: QPoint) -> str | None:
+        """Return the name of the note at a viewport position, or None
+        if a category or empty space is there."""
+        item = self.itemAt(position)
         if item is None or identity_of(item)[0] != KIND_NOTE:
             return None
         return identity_of(item)[1]

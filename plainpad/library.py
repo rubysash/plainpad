@@ -9,31 +9,53 @@ from pathlib import Path
 
 from plainpad.categories import CategoryIndex, CategoryNameError
 from plainpad.config import (
+    IMAGES_DIR_NAME,
     INDEX_FILE_NAME,
     NOTES_DIR_NAME,
     TRASH_DIR_NAME,
     UNCATEGORIZED_ID,
 )
 from plainpad.crud import NoteNameError, NoteStore
-from plainpad.models import Category, CategoryListing
+from plainpad.image_links import image_link_for, image_names_in
+from plainpad.image_sources import ImageSourceError, ImageSourceReader
+from plainpad.images import ImageFormatError, ImageStore
+from plainpad.models import Category, CategoryListing, ImportedText
+from plainpad.render import MarkdownRenderer
+from plainpad.rich_export import RichTextExporter
+from plainpad.rich_import import RichTextImporter
 from plainpad.search import find_matching_notes
 
 # Re-exported so the GUI can catch them without importing layer 1.
-__all__ = ["Library", "NoteNameError", "CategoryNameError"]
+__all__ = [
+    "Library",
+    "NoteNameError",
+    "CategoryNameError",
+    "ImageFormatError",
+    "ImageSourceError",
+]
 
 
 class Library:
-    """Notes, categories, and search behind one interface."""
+    """Notes, categories, images, and search behind one interface."""
 
-    def __init__(self, data_dir: Path) -> None:
+    def __init__(
+        self, data_dir: Path, sources: ImageSourceReader | None = None
+    ) -> None:
         """Open the data folder, creating it and its contents if needed.
 
-        Builds the NoteStore and CategoryIndex, then reconciles the index
-        with the note files actually present.
+        Builds the NoteStore, ImageStore, and CategoryIndex, then
+        reconciles the index with the note files actually present.
+        ``sources`` fetches pasted images; tests pass one that stays off
+        the network.
         """
-        self._notes = NoteStore(
-            data_dir / NOTES_DIR_NAME, data_dir / TRASH_DIR_NAME
+        trash_dir = data_dir / TRASH_DIR_NAME
+        self._notes = NoteStore(data_dir / NOTES_DIR_NAME, trash_dir)
+        self._images = ImageStore(
+            data_dir / IMAGES_DIR_NAME, trash_dir / IMAGES_DIR_NAME
         )
+        self._sources = sources or ImageSourceReader()
+        self._importer = RichTextImporter(self._images, self._sources)
+        self._exporter = RichTextExporter(MarkdownRenderer(), self._images)
         self._index = CategoryIndex(data_dir / INDEX_FILE_NAME)
         self._index.reconcile(self._notes.names())
 
@@ -58,6 +80,14 @@ class Library:
     def note_exists(self, name: str) -> bool:
         """Return True if a note with this name exists."""
         return self._notes.exists(name)
+
+    def note_path(self, name: str) -> Path:
+        """Return the file a note is stored in."""
+        return self._notes.path_of(name)
+
+    def notes_folder(self) -> Path:
+        """Return the folder that holds every note file."""
+        return self._notes.folder
 
     def search(self, query: str) -> set[str]:
         """Return the names of notes matching a keyword."""
@@ -94,6 +124,63 @@ class Library:
     def move_note(self, name: str, category_id: str) -> None:
         """File a note under a different category."""
         self._index.assign(name, category_id)
+
+    # --- Images ----------------------------------------------------------
+
+    def images_folder(self) -> Path:
+        """Return the folder that holds every image file."""
+        return self._images.folder
+
+    def add_image(self, data: bytes) -> str:
+        """Store image bytes and return the markdown link that shows them.
+
+        Raises ImageFormatError if the bytes are not an accepted image.
+        """
+        return image_link_for(self._images.add(data))
+
+    def add_image_from(self, address: str) -> str:
+        """Store the image at a web, file, or data address; return its link.
+
+        Raises ImageSourceError if the address cannot be read and
+        ImageFormatError if what it holds is not an accepted image.
+        """
+        return self.add_image(self._sources.read(address))
+
+    def stored_image_file(self, address: str) -> Path | None:
+        """Return the stored image file an address names, if it exists.
+
+        The address may be a note's relative link or the ``file:``
+        address the View tab resolves it to. Anything else is None.
+        """
+        name = self._exporter.stored_name(address)
+        if name is None or not self._images.exists(name):
+            return None
+        return self._images.path_of(name)
+
+    def clean_up_unused_images(self) -> int:
+        """Move images that no note links to into the trash.
+
+        Trashed notes count as linking, so restoring one by hand never
+        finds its pictures gone. Returns how many images were moved.
+        """
+        referenced: set[str] = set()
+        for text in self._notes.texts_including_trash():
+            referenced |= image_names_in(text)
+        return self._images.trash_unused(referenced)
+
+    # --- Rich copy and paste ---------------------------------------------
+
+    def import_rich_text(self, html: str) -> ImportedText:
+        """Convert clipboard HTML to markdown, storing its images."""
+        return self._importer.markdown_from(html)
+
+    def rich_html_of_note(self, markdown_text: str) -> str:
+        """Return a note as HTML with images embedded, for the clipboard."""
+        return self._exporter.note_html(markdown_text)
+
+    def rich_html_of_selection(self, copied_html: str) -> str:
+        """Return the View tab's copied HTML, theme off, images embedded."""
+        return self._exporter.selection_html(copied_html)
 
     # --- Categories ------------------------------------------------------
 

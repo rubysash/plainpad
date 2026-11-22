@@ -1,78 +1,30 @@
 """GUI tests for MainWindow and its widgets, using pytest-qt.
 
-Each test gets its own data folder and its own QSettings file under
-tmp_path, so the user's notes and window state are never touched. Dialogs
-are replaced with stubs that answer Yes, and autosave runs fast.
+The ``window`` fixture in conftest.py gives each test its own data folder
+and settings, so the user's notes and window state are never touched.
 """
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from PyQt6 import sip
-from PyQt6.QtCore import QSettings, Qt, QUrl
+from PyQt6.QtCore import QPoint, QSettings, Qt, QUrl
 from PyQt6.QtWebEngineCore import QWebEnginePage
 from PyQt6.QtWidgets import QApplication
 from pytestqt.qtbot import QtBot
 
 from plainpad.config import THEMES_DIR
-from plainpad.gui import editor_tab, main_window, settings_tab, tree_commands
+from plainpad.gui import main_window
 from plainpad.gui.main_window import MainWindow
 from plainpad.library import Library
-from plainpad.style_store import StyleStore
 from plainpad.theme_store import ThemeStore
-
-FAST_AUTOSAVE_MS = 50
-
-
-def answer_yes(*_args: object) -> bool:
-    """Stand-in for dialogs.confirm that always answers Yes."""
-    return True
-
-
-@pytest.fixture
-def window(
-    qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[MainWindow]:
-    """A shown MainWindow over an empty data folder.
-
-    The window is destroyed at once after the test rather than left to
-    pytest-qt, because WebEngine crashes at exit if a rendered page
-    outlives the application.
-    """
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(
-        QSettings.Format.IniFormat,
-        QSettings.Scope.UserScope,
-        str(tmp_path / "settings"),
-    )
-    monkeypatch.setattr(editor_tab, "AUTOSAVE_DELAY_MS", FAST_AUTOSAVE_MS)
-    monkeypatch.setattr(settings_tab, "AUTOSAVE_DELAY_MS", FAST_AUTOSAVE_MS)
-    monkeypatch.setattr(main_window, "confirm", answer_yes)
-    monkeypatch.setattr(tree_commands, "confirm", answer_yes)
-    data_dir = tmp_path / "data"
-    themes = ThemeStore(THEMES_DIR)
-    style_store = StyleStore(data_dir / "styles", themes)
-    win = MainWindow(Library(data_dir), style_store, themes)
-    win.show()
-    yield win
-    win.close()
-    sip.delete(win)
+from tests.gui_support import answer_yes, new_note, status
 
 
 @pytest.fixture
 def library(window: MainWindow) -> Library:
     """The Library behind the window."""
     return window._library
-
-
-def new_note(window: MainWindow, qtbot: QtBot, text: str = "") -> str:
-    """Create a note through the window, type ``text``, return its name."""
-    window._commands.create_note()
-    editor = window._tabs.editor
-    if text:
-        qtbot.keyClicks(editor, text)
-    return editor.current_note_name()
 
 
 def make_save_flaky(
@@ -89,11 +41,6 @@ def make_save_flaky(
 
     monkeypatch.setattr(library, "save_note", flaky_save)
     return switch
-
-
-def status(window: MainWindow) -> str:
-    """Return the status bar text."""
-    return window.statusBar().currentMessage()
 
 
 def test_editor_is_disabled_until_a_note_is_open(
@@ -265,36 +212,136 @@ def test_first_run_uses_crt_theme(window: MainWindow) -> None:
     assert QApplication.instance().styleSheet() == themes.qss("crt")
 
 
-def test_switching_theme_restyles_app_and_css_editor(
-    window: MainWindow,
+def test_switching_theme_restyles_app_and_view(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     themes = ThemeStore(THEMES_DIR)
+    rendered: list[str] = []
+    monkeypatch.setattr(
+        window._tabs.preview,
+        "show_markdown",
+        lambda _text, css: rendered.append(css),
+    )
+    window._commands.create_note()
+    window._tabs.show_view_tab()
     window._actions.themes["dark"].trigger()
     assert QApplication.instance().styleSheet() == themes.qss("dark")
-    assert window._tabs.settings.current_css() == themes.preview_css("dark")
+    assert rendered[-1] == themes.preview_css("dark")
     assert window._actions.themes["dark"].isChecked()
     assert not window._actions.themes["crt"].isChecked()
     assert QSettings().value("appearance/theme") == "dark"
 
 
-def test_default_theme_css_is_read_only(window: MainWindow) -> None:
-    window._actions.themes["default"].trigger()
-    settings = window._tabs.settings
-    assert settings._editor.isReadOnly()
-    assert not settings._reset_button.isEnabled()
-    window._actions.themes["light"].trigger()
-    assert not settings._editor.isReadOnly()
+def test_tabs_are_edit_and_view_only(window: MainWindow) -> None:
+    tabs = window._tabs
+    assert [tabs.tabText(i) for i in range(tabs.count())] == ["Edit", "View"]
 
 
-def test_css_edits_are_saved_per_theme(
-    window: MainWindow, qtbot: QtBot, tmp_path: Path
+def right_click(window: MainWindow, note_name: str | None) -> None:
+    """Open the tree menu on a note's row, or on a category row."""
+    tree = window._sidebar.tree
+    item = tree.find_item("note", note_name) if note_name else (
+        tree.topLevelItem(0)
+    )
+    tree.scrollToItem(item)
+    window._locations.show_menu(tree.visualItemRect(item).center())
+    window._locations._menu.close()
+
+
+def test_right_click_note_shows_it_in_explorer(
+    window: MainWindow, library: Library
 ) -> None:
-    settings = window._tabs.settings
-    window._actions.themes["dark"].trigger()
-    qtbot.keyClicks(settings._editor, "/* mine */")
-    window._actions.themes["light"].trigger()
-    saved = tmp_path / "data" / "styles" / "dark.css"
-    assert saved.read_text(encoding="utf-8").startswith("/* mine */")
-    assert not settings.current_css().startswith("/* mine */")
-    window._actions.themes["dark"].trigger()
-    assert settings.current_css().startswith("/* mine */")
+    library.save_note("Chili", "")
+    window.refresh_tree()
+    window._sidebar.tree.select_note("Chili")
+    right_click(window, "Chili")
+    window._actions.show_in_file_browser.trigger()
+    command, folder = window._locations._launcher.started[-1]
+    assert command == ["explorer", "/select,", str(library.note_path("Chili"))]
+    assert folder == library.notes_folder()
+
+
+def test_right_click_category_opens_terminal_in_notes_folder(
+    window: MainWindow, library: Library
+) -> None:
+    right_click(window, None)
+    window._actions.open_terminal_here.trigger()
+    folder = str(library.notes_folder())
+    command, _ = window._locations._launcher.started[-1]
+    assert command == ["wt", "-d", folder]
+
+
+def test_right_click_offers_cmd_and_powershell_on_windows(
+    window: MainWindow, library: Library
+) -> None:
+    actions = window._actions
+    menu_items = window._locations._menu.actions()
+    for action in (
+        actions.show_in_file_browser,
+        actions.open_terminal_here,
+        actions.open_command_prompt_here,
+        actions.open_powershell_here,
+    ):
+        assert action in menu_items
+    right_click(window, None)
+    actions.open_command_prompt_here.trigger()
+    actions.open_powershell_here.trigger()
+    started = window._locations._launcher.started[-2:]
+    folder = library.notes_folder()
+    assert started == [(["cmd.exe"], folder), (["pwsh"], folder)]
+
+
+def real_right_click(window: MainWindow, qtbot: QtBot, at: QPoint) -> None:
+    """Right-click the tree as a mouse would, then open its menu there."""
+    viewport = window._sidebar.tree.viewport()
+    qtbot.mouseClick(viewport, Qt.MouseButton.RightButton, pos=at)
+    window._locations.show_menu(at)
+    window._locations._menu.close()
+
+
+def test_right_click_new_note_goes_into_clicked_category(
+    window: MainWindow, library: Library, qtbot: QtBot
+) -> None:
+    menu_items = window._locations._menu.actions()
+    assert window._actions.new_note in menu_items
+    assert window._actions.new_category in menu_items
+    recipes = library.create_category("Recipes")
+    window.refresh_tree()
+    tree = window._sidebar.tree
+    row = tree.find_item("category", recipes.category_id)
+    real_right_click(window, qtbot, tree.visualItemRect(row).center())
+    window._actions.new_note.trigger()
+    listing = next(
+        item for item in library.listings()
+        if item.category.category_id == recipes.category_id
+    )
+    assert listing.note_names == [window._tabs.editor.current_note_name()]
+
+
+def test_right_click_empty_space_puts_new_note_in_uncategorized(
+    window: MainWindow, library: Library, qtbot: QtBot
+) -> None:
+    recipes = library.create_category("Recipes")
+    window.refresh_tree()
+    tree = window._sidebar.tree
+    tree.setCurrentItem(tree.find_item("category", recipes.category_id))
+    empty = QPoint(5, tree.viewport().height() - 5)
+    assert tree.itemAt(empty) is None
+    real_right_click(window, qtbot, empty)
+    window._actions.new_note.trigger()
+    uncategorized = library.listings()[-1]
+    assert uncategorized.note_names == [
+        window._tabs.editor.current_note_name()
+    ]
+
+
+def test_launch_failure_is_shown_in_status_bar(
+    window: MainWindow, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*_args: object) -> None:
+        raise FileNotFoundError("wt not found")
+
+    monkeypatch.setattr(window._locations._launcher, "start", fail)
+    right_click(window, None)
+    window._actions.open_terminal_here.trigger()
+    assert "Could not open a terminal" in status(window)

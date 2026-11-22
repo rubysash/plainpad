@@ -181,12 +181,6 @@ QPushButton:disabled {
     color: #adb5bd;
 }
 
-/* --- Labels ----------------------------------------------------------- */
-
-QLabel#hint {
-    color: #adb5bd;
-}
-
 /* --- Splitter --------------------------------------------------------- */
 
 QSplitter::handle {
@@ -259,4 +253,25 @@ QToolTip {
     background-color: #303030;
     color: #ffffff;
     border: 1px solid #444444;
+}
+
+/* --- Keyboard shortcuts table ----------------------------------------- */
+
+QTableWidget {
+    background-color: #2f2f2f;
+    border: 1px solid #444444;
+    gridline-color: #444444;
+    outline: none;
+}
+
+QTableWidget::item {
+    padding: 3px 6px;
+}
+
+QHeaderView::section {
+    background-color: #303030;
+    color: #ffffff;
+    border: none;
+    border-bottom: 1px solid #444444;
+    padding: 4px 6px;
 }

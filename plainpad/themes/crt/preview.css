@@ -86,3 +86,116 @@ hr {
     border: none;
     border-top: 1px dashed #1a8c1a;
 }
+
+/* Task lists: the checkbox stands where the bullet would be. */
+li.task-list-item {
+    list-style-type: none;
+}
+
+/* Drawn here because the browser greys out a read-only checkbox. */
+li.task-list-item input {
+    appearance: none;
+    box-sizing: border-box;
+    width: 0.9em;
+    height: 0.9em;
+    margin: 0 0.4em 0 -1.4em;
+    border: 1px solid #33ff33;
+    border-radius: 2px;
+    vertical-align: -0.05em;
+    position: relative;
+}
+
+li.task-list-item input:checked {
+    background-color: #33ff33;
+    border-color: #33ff33;
+}
+
+li.task-list-item input:checked::after {
+    content: "\2713";
+    color: #000000;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-size: 0.8em;
+    line-height: 1;
+    text-shadow: none;
+}
+
+del {
+    color: #1a8c1a;
+}
+
+.footnote {
+    font-size: 0.9em;
+    color: #1a8c1a;
+}
+
+/*
+ * Syntax highlighting, for fences that name a language. Pygments gives
+ * each token a short class; its first letter is the family: c comment,
+ * k keyword, s string, m number, n name, o operator, g diff.
+ */
+.highlight code [class^="c"] {
+    color: #1a8c1a;
+    font-style: italic;
+}
+
+.highlight code [class^="k"],
+.highlight code .ow {
+    color: #ccffcc;
+    font-weight: bold;
+}
+
+.highlight code [class^="s"],
+.highlight code .dl {
+    color: #99ff99;
+}
+
+.highlight code [class^="m"],
+.highlight code .il,
+.highlight code .kc {
+    color: #99ff99;
+}
+
+.highlight code .nf,
+.highlight code .fm,
+.highlight code .nd {
+    color: #e6ffe6;
+}
+
+.highlight code .nc,
+.highlight code .nn,
+.highlight code .ne {
+    color: #e6ffe6;
+}
+
+.highlight code .nb,
+.highlight code .bp {
+    color: #ccffcc;
+}
+
+.highlight code .nt {
+    color: #ccffcc;
+}
+
+.highlight code .na,
+.highlight code .nv {
+    color: #99ff99;
+}
+
+.highlight code .gi {
+    color: #ccffcc;
+}
+
+.highlight code .gd {
+    color: #1a8c1a;
+}
+
+.highlight code .gh,
+.highlight code .gu {
+    color: #ccffcc;
+    font-weight: bold;
+}

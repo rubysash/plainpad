@@ -1,8 +1,7 @@
 """Applying a theme's window stylesheet to the application.
 
 The stylesheets live in the themes/ folder; see theme_store.py. The
-rendered markdown view is styled separately by the user's CSS; see
-style_store.py.
+rendered markdown view is styled separately by the theme's preview.css.
 """
 
 from PyQt6.QtWidgets import QApplication
