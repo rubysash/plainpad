@@ -3,7 +3,12 @@
 import markdown
 
 from plainpad.code_blocks import add_copy_links
-from plainpad.config import MARKDOWN_EXTENSIONS, PREVIEW_PAGE_TEMPLATE
+from plainpad.config import (
+    INDENTED_CODE_PROCESSOR,
+    MARKDOWN_EXTENSION_CONFIGS,
+    MARKDOWN_EXTENSIONS,
+    PREVIEW_PAGE_TEMPLATE,
+)
 from plainpad.models import RenderedPage
 
 
@@ -15,9 +20,17 @@ class MarkdownRenderer:
     """
 
     def __init__(self) -> None:
-        """Create the markdown parser with config.MARKDOWN_EXTENSIONS."""
+        """Create the markdown parser with config.MARKDOWN_EXTENSIONS.
+
+        Indented code blocks are switched off, so only fenced blocks are
+        code; see config.INDENTED_CODE_PROCESSOR.
+        """
         self._markdown = markdown.Markdown(
-            extensions=list(MARKDOWN_EXTENSIONS)
+            extensions=list(MARKDOWN_EXTENSIONS),
+            extension_configs=MARKDOWN_EXTENSION_CONFIGS,
+        )
+        self._markdown.parser.blockprocessors.deregister(
+            INDENTED_CODE_PROCESSOR
         )
 
     def body_html(self, markdown_text: str) -> str:

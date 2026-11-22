@@ -15,6 +15,9 @@ seconds after you stop typing.
   or your Linux file manager), or a terminal there. On Windows you can
   pick Windows Terminal, Command Prompt, or PowerShell
 - A copy button on every code block in the View tab
+- Markdown extras: task list checkboxes (`- [ ]`, `- [x]`),
+  `~~strikethrough~~`, bare links, footnotes, and lists that nest at 2
+  spaces. Only fenced blocks are code; indenting never is
 - Images: paste a screenshot, paste or drop image files, and the app keeps
   its own copy in `data/images/`. Animated GIFs stay animated
 - Paste Formatted (Ctrl+Shift+V) turns text copied from a document or an
@@ -22,7 +25,7 @@ seconds after you stop typing.
 - Copy Note as Rich Text (Ctrl+Shift+C), or Ctrl+C in the View tab, copies
   formatted text with the images embedded, for pasting into a document or
   an email
-- Right-click a picture in the View tab and choose Copy Image to copy just
+- Right-click a picture in the View tab and choose Copy image to copy just
   that picture. Gmail in Firefox only accepts pictures copied this way
 - Arrow keys in the sidebar browse notes after a short pause
 - Autosave, per-note undo and redo

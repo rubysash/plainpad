@@ -179,3 +179,12 @@ def test_selection_html_ignores_files_outside_the_image_folder(
     outside.write_bytes(PNG)
     html = exporter(images).selection_html(f'<img src="{outside.as_uri()}">')
     assert "data:" not in html
+
+
+def test_checkboxes_leave_as_box_characters(images: ImageStore) -> None:
+    rich = exporter(images)
+    html = rich.note_html("- [ ] open\n- [x] done")
+    assert "<input" not in html
+    assert "☐ open" in html and "☑ done" in html
+    copied = '<ul><li><input type="checkbox" disabled checked> done</li></ul>'
+    assert "☑ done" in rich.selection_html(copied)

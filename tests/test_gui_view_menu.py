@@ -1,4 +1,4 @@
-"""GUI tests for copying a single picture out of the View tab.
+"""GUI tests for the View tab's right-click menu and Copy image.
 
 Gmail in Firefox drops any picture that comes inside HTML, so a copied
 picture must reach the clipboard as a file and a bitmap only.
@@ -88,26 +88,30 @@ def test_view_tab_leaves_a_copied_picture_alone(
     assert announced == []
 
 
-def test_right_click_copy_image_copies_the_stored_file(
+def right_click_view(
     window: MainWindow,
-    library: Library,
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # The menu is caught as it opens instead of waiting for a click.
-    # Only exec keeps a parentless menu alive while it is open; a popup
-    # was freed unseen, so a patched popup would never be reached here.
+    markdown: str,
+) -> QMenu:
+    """Show ``markdown`` in the View tab, right-click near its top left.
+
+    Returns the menu that opened. It is caught as it opens instead of
+    waiting for a click. Only exec keeps a parentless menu alive while
+    it is open; a popup was freed unseen, so a patched popup would
+    never be reached here.
+    """
     shown: list[QMenu] = []
     monkeypatch.setattr(QMenu, "exec", lambda menu, *_: shown.append(menu))
     new_note(window, qtbot)
-    link = library.add_image(big_png())
-    window._tabs.editor.insert_markdown(link)
+    window._tabs.editor.insert_markdown(markdown)
     preview = window._tabs.preview
     with qtbot.waitSignal(preview.loadFinished, timeout=10000):
         window._tabs.show_view_tab()
     target = preview.focusProxy() or preview
-    # The page's default margin is 8px, so (40, 40) is on the picture.
-    at = QPoint(40, 40)
+    # Past the page and paragraph margins, so on the first word, link,
+    # or picture.
+    at = QPoint(24, 32)
     QTest.mouseClick(target, Qt.MouseButton.RightButton, pos=at)
     # A real right-click also sends this; the engine opens its menu on it.
     QApplication.sendEvent(
@@ -117,13 +121,50 @@ def test_right_click_copy_image_copies_the_stored_file(
         ),
     )
     qtbot.waitUntil(lambda: bool(shown), timeout=10000)
-    copy_image = [
-        action
-        for action in shown[0].actions()
-        if action.text().lower().replace("&", "") == "copy image"
+    return shown[0]
+
+
+def labels_of(menu: QMenu) -> list[str]:
+    """Return a menu's item labels, with "|" for a separator."""
+    return [
+        "|" if action.isSeparator() else action.text().replace("&", "")
+        for action in menu.actions()
     ]
-    assert len(copy_image) == 1
-    copy_image[0].trigger()
+
+
+def test_right_click_on_text_offers_only_copy_and_select_all(
+    window: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    menu = right_click_view(window, qtbot, monkeypatch, "Words here")
+    assert labels_of(menu) == ["Copy", "Select all"]
+
+
+def test_right_click_on_link_adds_copy_link_address(
+    window: MainWindow, qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    menu = right_click_view(
+        window, qtbot, monkeypatch, "[example link](https://example.com/page)"
+    )
+    assert labels_of(menu) == [
+        "Copy", "Select all", "|", "Copy link address"
+    ]
+    menu.actions()[-1].trigger()
+    mime = QApplication.clipboard().mimeData()
+    assert mime.text() == "https://example.com/page"
+    assert not mime.hasHtml()
+    assert status(window) == "Copied link address"
+
+
+def test_right_click_copy_image_copies_the_stored_file(
+    window: MainWindow,
+    library: Library,
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    link = library.add_image(big_png())
+    menu = right_click_view(window, qtbot, monkeypatch, link)
+    assert labels_of(menu) == ["Copy", "Select all", "|", "Copy image"]
+    menu.actions()[-1].trigger()
     mime = QApplication.clipboard().mimeData()
     assert not mime.hasHtml()
     assert mime.urls()[0].toLocalFile() == QUrl.fromLocalFile(

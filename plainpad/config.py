@@ -144,6 +144,11 @@ MARKDOWN_BULLETS = "-"
 PASTE_DROPPED_TAGS = (
     "head", "style", "script", "meta", "link", "title", "xml",
 )
+# Mail programs drop form controls from pasted HTML, so a task list's
+# checkboxes leave the app as these characters instead. The space after
+# each comes from the markdown.
+CHECKED_BOX_TEXT = "☑"
+UNCHECKED_BOX_TEXT = "☐"
 
 # --- Categories ----------------------------------------------------------
 
@@ -166,7 +171,26 @@ NOTE_BROWSE_DELAY_MS = 300
 
 # --- Markdown and preview ------------------------------------------------
 
-MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
+MARKDOWN_EXTENSIONS = (
+    "fenced_code",
+    "tables",
+    "footnotes",
+    "mdx_truly_sane_lists",
+    "pymdownx.tasklist",
+    "pymdownx.tilde",
+    "pymdownx.magiclink",
+)
+# A list item nested 2 spaces in is a sublist, as on GitHub.
+NESTED_LIST_INDENT = 2
+MARKDOWN_EXTENSION_CONFIGS = {
+    "mdx_truly_sane_lists": {"nested_indent": NESTED_LIST_INDENT},
+    # ~~text~~ is struck through; ~text~ stays plain, not subscript.
+    "pymdownx.tilde": {"subscript": False},
+}
+# Python-Markdown's block processor that makes text indented 4 spaces a
+# code block. It is removed: with 2 space nesting, a third list level
+# sits 4 spaces in, and only fenced blocks should ever become code.
+INDENTED_CODE_PROCESSOR = "code"
 
 PREVIEW_BACKGROUND_COLOR = "#000000"
 EXTERNAL_LINK_SCHEMES = frozenset({"http", "https", "mailto"})

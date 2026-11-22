@@ -3,17 +3,8 @@
 from pathlib import Path
 
 from PyQt6.QtCore import QUrl, pyqtSignal
-from PyQt6.QtGui import (
-    QAction,
-    QColor,
-    QContextMenuEvent,
-    QDesktopServices,
-)
-from PyQt6.QtWebEngineCore import (
-    QWebEngineContextMenuRequest,
-    QWebEnginePage,
-    QWebEngineSettings,
-)
+from PyQt6.QtGui import QColor, QContextMenuEvent, QDesktopServices
+from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QApplication, QWidget
 
@@ -23,6 +14,7 @@ from plainpad.config import (
     PREVIEW_BACKGROUND_COLOR,
     RICH_COPY_MARKER_FORMAT,
 )
+from plainpad.gui.view_menu import build_view_menu
 from plainpad.render import MarkdownRenderer
 
 
@@ -66,6 +58,8 @@ class PreviewTab(QWebEngineView):
 
     # A code block's text was put on the clipboard.
     code_copied = pyqtSignal()
+    # A link's address was put on the clipboard.
+    link_copied = pyqtSignal()
     # The page's selection was copied: the raw HTML and the plain text
     # the browser engine put on the clipboard.
     selection_copied = pyqtSignal(str, str)
@@ -121,35 +115,21 @@ class PreviewTab(QWebEngineView):
         self.triggerPageAction(QWebEnginePage.WebAction.SelectAll)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
-        """Show the page's menu, with Copy Image taken over for files.
-
-        The engine's own Copy Image puts HTML beside the bitmap, and
-        some programs, Gmail in Firefox among them, then drop the
-        picture. For a local picture the app makes the copy instead;
-        a picture on the web keeps the engine's action.
-        """
-        menu = self.createStandardContextMenu()
-        request = self.lastContextMenuRequest()
-        engine_copy = self.pageAction(
-            QWebEnginePage.WebAction.CopyImageToClipboard
+        """Show the short menu from ``build_view_menu`` at the pointer."""
+        menu = build_view_menu(
+            self.pageAction,
+            self.lastContextMenuRequest(),
+            self.copy_link,
+            self.image_copy_requested.emit,
         )
-        image = QWebEngineContextMenuRequest.MediaType.MediaTypeImage
-        if (
-            request is not None
-            and request.mediaType() == image
-            and request.mediaUrl().isLocalFile()
-            and engine_copy in menu.actions()
-        ):
-            address = request.mediaUrl().toString()
-            ours = QAction(engine_copy.text(), menu)
-            ours.triggered.connect(
-                lambda: self.image_copy_requested.emit(address)
-            )
-            menu.insertAction(engine_copy, ours)
-            menu.removeAction(engine_copy)
         # exec, not popup: the menu has no parent, so Python frees it as
         # soon as this method returns, and a popup would vanish unseen.
         menu.exec(event.globalPos())
+
+    def copy_link(self, address: str) -> None:
+        """Put a link's address on the clipboard as plain text."""
+        QApplication.clipboard().setText(address)
+        self.link_copied.emit()
 
     def on_clipboard_changed(self) -> None:
         """Report a copy made from this page so it can be made portable.

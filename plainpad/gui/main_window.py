@@ -163,6 +163,9 @@ class MainWindow(QMainWindow):
         self._tabs.preview.code_copied.connect(
             lambda: self.statusBar().showMessage("Copied code block")
         )
+        self._tabs.preview.link_copied.connect(
+            lambda: self.statusBar().showMessage("Copied link address")
+        )
         self._tabs.preview.selection_copied.connect(
             self._clipboard.replace_selection_copy
         )

@@ -182,10 +182,12 @@ Out of a note:
 - **Copy** (Ctrl+C) in the View tab copies the selection the same way.
   The theme's colors and fonts are removed, as are code block copy links.
 - In both, stored images are embedded in the HTML as `data:` addresses,
-  because other programs cannot read Plainpad's files. The clipboard also
-  carries a plain text version.
+  because other programs cannot read Plainpad's files. Task list
+  checkboxes become the characters ☐ and ☑, because mail programs strip
+  checkboxes from pasted HTML. The clipboard also carries a plain text
+  version.
 - Copy in the Edit tab is unchanged: it copies the markdown text.
-- **Copy Image** on the View tab's right-click menu, over a stored
+- **Copy image** on the View tab's right-click menu, over a stored
   picture, copies that one picture with no HTML: the file itself, which
   keeps every byte so a GIF stays animated, plus a bitmap of it for
   programs that take no files. Over a picture on the web, the menu item
@@ -198,7 +200,7 @@ arrives inside pasted HTML, whether the picture is a `data:` address or
 a `file:` address, and with or without a bitmap beside the HTML. It
 takes a lone bitmap or a lone file. So text and pictures copied together
 reach Gmail as text only; each picture has to be copied by itself with
-Copy Image. Google Docs, Outlook, Word, Thunderbird, and LibreOffice are
+Copy image, which works. Google Docs, Outlook, Word, Thunderbird, and LibreOffice are
 not tried yet. The automated tests cover the conversions and the
 clipboard contents, not how each program accepts them.
 
@@ -222,7 +224,23 @@ clipboard contents, not how each program accepts them.
   inside the app. Only `http`, `https`, and `mailto` links are opened;
   other link types do nothing. Links to an anchor in the same note scroll
   the page.
-- Markdown extensions: fenced code blocks, tables, sane lists.
+- Markdown beyond the basics (headings, emphasis, lists, links, quotes,
+  rules, line breaks, raw HTML):
+  - Fenced code blocks (```` ``` ````). Text indented 4 spaces is **not**
+    code; it stays ordinary text. Only fences make code.
+  - Tables, with column alignment.
+  - Task lists: `- [ ]` and `- [x]` show a checkbox drawn in the
+    theme's colors. It cannot be clicked, since the page runs no
+    JavaScript; tick a task by editing the text.
+  - `~~text~~` is struck through. `~text~` stays as typed.
+  - Bare web and email addresses become links, as `<...>` ones do.
+  - Footnotes: `text[^1]` and, anywhere below, `[^1]: the note`.
+    Clicking the number scrolls to the note and back.
+  - A list item indented 2 spaces under another is nested, as on GitHub.
+- The right-click menu is short, not the browser engine's (no Back,
+  Reload, or View page source): **Copy** and **Select all** always;
+  **Copy link address** over a link, which copies the address as plain
+  text; and **Copy image** over a picture (see 4.4).
 
 ## 5. Autosave
 
@@ -432,7 +450,8 @@ Three layers. Lower layers never import higher ones.
 | `plainpad/gui/tree_items.py` | `make_item()`, `identity_of()` | What a tree row is and how to read it |
 | `plainpad/gui/tab_area.py` | `TabArea` | The two tabs; flush and render on tab change |
 | `plainpad/gui/editor_tab.py` | `EditorTab` | Markdown editor, per-note undo |
-| `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view and its right-click menu |
+| `plainpad/gui/preview_tab.py` | `PreviewTab`, `ExternalLinkPage` | Rendered view |
+| `plainpad/gui/view_menu.py` | `build_view_menu()` | The View tab's right-click menu |
 | `plainpad/gui/dialogs.py` | `ask_for_name()`, `confirm()`, `show_about()` | The modal prompts |
 | `plainpad/gui/shortcuts_dialog.py` | `ShortcutsDialog`, `menu_shortcuts()` | Help > Keyboard Shortcuts |
 | `plainpad/themes/<name>/` | `app.qss`, `preview.css`, `theme.json` | One theme; see 9 |
@@ -440,14 +459,16 @@ Three layers. Lower layers never import higher ones.
 | `tests/test_gui.py` | | pytest-qt tests of the window: autosave, undo, search, rename, delete, failed saves, keyboard browsing, copy links, themes, right-click menu |
 | `tests/test_gui_images.py` | | pytest-qt tests of image paste and drop, Paste Formatted, rich copy from both tabs, cleanup |
 | `tests/test_gui_shortcuts.py` | | pytest-qt tests of the Keyboard Shortcuts menu item and table |
-| `tests/test_gui_copy_image.py` | | pytest-qt tests of Copy Image from the View tab |
+| `tests/test_gui_view_menu.py` | | pytest-qt tests of the View tab's right-click menu and Copy image |
 | `tests/conftest.py`, `tests/gui_support.py`, `tests/image_samples.py` | | The shared window fixture, GUI stand-ins, sample images and a network stand-in |
 
-Size: about 3,850 lines of Python (half of it docstrings and comments)
-across 38 source files. `main_window.py` and `note_tree.py` run over the
+Size: about 3,900 lines of Python (half of it docstrings and comments)
+across 39 source files. `main_window.py` and `note_tree.py` run over the
 200 line guideline.
 
-Dependencies beyond PyQt6: `Markdown` renders notes; `markdownify` (with
+Dependencies beyond PyQt6: `Markdown` renders notes, with
+`pymdown-extensions` for task lists, strikethrough, and bare links, and
+`mdx_truly_sane_lists` for 2 space nesting; `markdownify` (with
 `beautifulsoup4`) converts pasted HTML to markdown.
 
 ## 11. Out of scope

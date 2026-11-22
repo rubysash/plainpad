@@ -13,9 +13,11 @@ from urllib.request import url2pathname
 from bs4 import BeautifulSoup, Comment
 
 from plainpad.config import (
+    CHECKED_BOX_TEXT,
     COPY_LINK_SCHEME,
     IMAGE_MIME_TYPES,
     PASTE_DROPPED_TAGS,
+    UNCHECKED_BOX_TEXT,
 )
 from plainpad.image_links import stored_image_name
 from plainpad.image_sources import FILE_SCHEME
@@ -48,6 +50,7 @@ class RichTextExporter:
             self._renderer.body_html(markdown_text), HTML_PARSER
         )
         self.embed_images(soup)
+        self.write_out_checkboxes(soup)
         return str(soup)
 
     def selection_html(self, copied_html: str) -> str:
@@ -71,6 +74,7 @@ class RichTextExporter:
             for attribute in THEME_ATTRIBUTES:
                 del tag[attribute]
         self.embed_images(soup)
+        self.write_out_checkboxes(soup)
         return str(soup).strip()
 
     def embed_images(self, soup: BeautifulSoup) -> None:
@@ -88,6 +92,18 @@ class RichTextExporter:
                 continue
             encoded = base64.b64encode(self._images.read(name)).decode()
             image["src"] = f"data:{mime_type};base64,{encoded}"
+
+    def write_out_checkboxes(self, soup: BeautifulSoup) -> None:
+        """Replace each task list checkbox with a box character.
+
+        Mail programs strip form controls from pasted HTML, which would
+        lose whether each task is done.
+        """
+        for box in soup.find_all("input", attrs={"type": "checkbox"}):
+            checked = box.has_attr("checked")
+            box.replace_with(
+                CHECKED_BOX_TEXT if checked else UNCHECKED_BOX_TEXT
+            )
 
     def stored_name(self, address: str) -> str | None:
         """Return the stored image an address refers to, if any.
